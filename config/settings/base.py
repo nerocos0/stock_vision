@@ -10,6 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+TWELVE_DATA_API_KEY = os.getenv('TWELVE_DATA_API_KEY')
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
