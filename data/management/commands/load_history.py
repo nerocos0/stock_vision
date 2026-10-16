@@ -1,32 +1,65 @@
 from django.core.management.base import BaseCommand
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
-from django.forms.models import model_to_dict
+from dateutil.relativedelta import relativedelta
 
 from data.services.twelvedata import TwelveDataService
 from data.models import Candle, Instrument
 
+
+INTERVAL_DATE_FORMAT = {
+    '5min': '%Y-%m-%d %H:%M:%S',
+    '1h': '%Y-%m-%d %H:%M:%S',
+    '4h': '%Y-%m-%d %H:%M:%S',
+    '1day': '%Y-%m-%d',
+    '1week': '%Y-%m-%d',
+    '1month': '%Y-%m-%d',
+}
+
+DEPTHS = {
+    '5min': relativedelta(months=1),
+    '1h': relativedelta(years=1),
+    '4h': relativedelta(years=2),
+    '1day': relativedelta(years=5),
+    '1week': relativedelta(years=5),
+    '1month': relativedelta(years=5),
+}
+
 class Command(BaseCommand):
+    help = 'Загрузка определенной истории графика одного инструмента'
+
     #получаем и записываем свечи в бд одного интервала
-    def get_and_save_candles_in_db(self, symbol, interval, start_date, end_date):
+    def get_valid_candles(self, symbol, interval, lower_bound, upper_bound):
         twelve_data = TwelveDataService()
-        candles = twelve_data.get_candles(symbol, interval, start_date, end_date)
-        keys_to_exclude = {'open', 'close', 'high', 'low'}
+        candles = twelve_data.get_all_candles(symbol, interval, lower_bound, upper_bound)
         models_list = []
         for candle in candles:
-            candle['datetime'] = datetime.strptime(candle['datetime'], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone(timedelta(hours=3)))
-            candle['open_price'] = Decimal(candle['open'])
-            candle['close_price'] = Decimal(candle['close'])
-            candle['high_price'] = Decimal(candle['high'])
-            candle['low_price'] = Decimal(candle['low'])
-            candle['timeframe'] = interval
-            candle['instrument'] = Instrument.objects.get(code=symbol.replace('/', ''))
-            clean_data = {k: v for k, v in candle.items() if k not in keys_to_exclude}
-            new_instance = Candle(**clean_data)
+            fmt = INTERVAL_DATE_FORMAT[interval]
+            candle['datetime'] = datetime.strptime(candle['datetime'], fmt).replace(tzinfo=timezone.utc)
+            instrument = Instrument.objects.get(code=symbol.replace('/', ''))
+            new_instance = Candle(
+                instrument=instrument,
+                timeframe=interval,
+                datetime=candle['datetime'],
+                open_price=Decimal(candle['open']),
+                high_price=Decimal(candle['high']),
+                low_price=Decimal(candle['low']),
+                close_price=Decimal(candle['close']),
+            )
             models_list.append(new_instance)
-        Candle.objects.bulk_create(models_list, ignore_conflicts=True)
-    def handle():
-        pass
+        return models_list
 
-test = Command()
-test.get_and_save_candles_in_db(symbol='EUR/USD', interval='5min', start_date='2026-10-13T16:00:00', end_date='2026-10-13T16:09:00')
+    def handle(self, *args, **options):
+        now = datetime.now()
+        now_str = datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
+        all_candles_model_list = []
+        for interval, depth in DEPTHS.items():
+            lower_bound_dt = now - depth
+            lower_bound_str = datetime.strftime(lower_bound_dt, '%Y-%m-%d %H:%M:%S')
+            all_candles_model_list.extend(self.get_valid_candles(
+                symbol='EUR/USD',
+                interval=interval,
+                lower_bound=lower_bound_str,
+                upper_bound=now_str
+            ))
+        Candle.objects.bulk_create(all_candles_model_list, ignore_conflicts=True)        
