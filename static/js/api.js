@@ -15,3 +15,10 @@ export async function fetchCandles(symbol, timeframe, fromDate, toDate) {
     if (!response.ok) throw new Error('Ошибка загрузки свечей');
     return await response.json();
 }
+
+// Получить сводку по всем инструментам для главной страницы
+export async function fetchSummary() {
+    const response = await fetch(`${API_BASE}/instruments/summary/`);
+    if (!response.ok) throw new Error('Ошибка загрузки сводки');
+    return await response.json();
+}

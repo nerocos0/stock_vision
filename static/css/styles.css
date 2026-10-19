@@ -73,3 +73,67 @@ header {
     width: 100vw;
     height: calc(100vh - 60px);
 }
+
+/* --- СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ --- */
+
+.dashboard-container {
+    padding: 30px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Адаптивная сетка (сама расставит карточки) */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Сама карточка */
+.card {
+    background: #1e222d;
+    border: 1px solid #2B2B43;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: #2962FF;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-code {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+}
+
+.card-name {
+    font-size: 13px;
+    color: #787b86;
+}
+
+.card-price {
+    font-size: 28px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 5px;
+}
+
+/* Цвета изменений */
+.price-up { color: #26a69a; }
+.price-down { color: #ef5350; }
+
+.card-change {
+    font-size: 15px;
+    font-weight: 500;
+}

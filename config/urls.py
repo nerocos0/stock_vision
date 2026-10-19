@@ -5,5 +5,6 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('data.urls')),
+    path('', TemplateView.as_view(template_name='index.html'), name='dashboard'),
     path('chart/', TemplateView.as_view(template_name='chart.html'), name='chart'),
 ]

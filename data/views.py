@@ -1,5 +1,7 @@
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.generics import ListAPIView
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from datetime import datetime, timezone
@@ -7,6 +9,7 @@ from django.utils.dateparse import parse_datetime, parse_date
 
 from .models import Candle, Instrument
 from .serializers import CandleSerializer, InstrumentSerializer
+from .services.twelvedata import TwelveDataService
 
 
 class CandleView(ListAPIView):
@@ -56,3 +59,18 @@ class InstrumentView(ReadOnlyModelViewSet):
     ordering = ['code']
 
     queryset = Instrument.objects.filter(is_active=True)
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        instruments = Instrument.objects.filter(is_active=True)
+        if instruments is not None:
+            data_list = []
+            for instrument in instruments:
+                twelve_data = TwelveDataService()
+                #пока преобразование оставим так, потом можно будет реализовать список известных валют
+                api_symbol = f"{instrument.code[:3]}/{instrument.code[3:]}"
+                data = twelve_data.get_instrument_changes(symbol=api_symbol)
+                data_list.append(data)
+
+        return Response(data=data_list)
+

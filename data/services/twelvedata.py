@@ -88,3 +88,27 @@ class TwelveDataService:
         if interval not in INTERVAL_TO_DELTA:
             raise ValueError(f'Неизвестный таймфрейм: {interval}')
         return INTERVAL_TO_DELTA[interval]
+
+    def get_instrument_changes(self, symbol):
+        url = f"{self.BASE_URL}/quote"
+        params = {
+            'apikey': self.api_key,
+            'symbol': symbol,
+        }
+        response = requests.get(url, params)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get('status') != 'error':
+            return {
+                'code': data['symbol'].replace('/', ''),
+                'name': data['name'],
+                'close': data['close'],
+                'change': data['change'],
+                'percent_change': data['percent_change'],
+            }
+        else:
+            message = data.get('message', 'Неизвестная ошибка получения данных с TwelveData')
+            if 'run out of API credits' in message or 'limit' in message.lower():
+                raise TwelveDataRateLimitError(message)
+            raise TwelveDataError(message)
