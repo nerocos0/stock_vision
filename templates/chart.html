@@ -1,46 +1,38 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>StockVision Chart</title>
+    
     <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
-    <style>
-        body { margin: 0; background-color: #131722; }
-        #chart-container { width: 100vw; height: 100vh; }
-    </style>
+    
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
+
+    <header>
+        <h1 class="logo">StockVision</h1>
+        
+        <div class="controls">
+            <select id="symbol-select">
+                <option value="EURUSD">Загрузка...</option>
+            </select>
+            
+            <div class="timeframes">
+                <button class="tf-btn" data-tf="5min">5m</button>
+                <button class="tf-btn active" data-tf="1h">1h</button>
+                <button class="tf-btn" data-tf="4h">4h</button>
+                <button class="tf-btn" data-tf="1day">1D</button>
+                <button class="tf-btn" data-tf="1week">1H</button>
+                <button class="tf-btn" data-tf="1month">1M</button>
+            </div>
+        </div>
+    </header>
+
     <div id="chart-container"></div>
     
-    <script>
-        const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
-            layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
-            grid: { vertLines: { color: '#2B2B43' }, horzLines: { color: '#2B2B43' } },
-            timeScale: { timeVisible: true },
-        });
+    <script type="module" src="{% static 'js/chart.js' %}"></script>
 
-        const candleSeries = chart.addCandlestickSeries({
-            upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
-            wickUpColor: '#26a69a', wickDownColor: '#ef5350'
-        });
-
-        async function fetchCandles() {
-            const response = await fetch('/api/candles/?symbol=EURUSD&timeframe=1h&from=2026-09-01&to=2026-10-15');
-            const data = await response.json();
-            
-            const formattedData = data.results.map(candle => ({
-                // Превращаем ISO-строку из Django в Unix timestamp (в секундах)
-                time: Math.floor(new Date(candle.datetime).getTime() / 1000),
-                open: parseFloat(candle.open_price),
-                high: parseFloat(candle.high_price),
-                low: parseFloat(candle.low_price),
-                close: parseFloat(candle.close_price),
-            }));
-
-            candleSeries.setData(formattedData);
-        }
-
-        fetchCandles();
-    </script>
 </body>
 </html>
