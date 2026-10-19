@@ -2,15 +2,25 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from datetime import datetime
+from datetime import datetime, timezone
+from django.utils.dateparse import parse_datetime, parse_date
 
 from .models import Candle, Instrument
 from .serializers import CandleSerializer, InstrumentSerializer
-from data.constants import INTERVAL_DATE_FORMAT
 
 
 class CandleView(ListAPIView):
     serializer_class = CandleSerializer
+
+    def _parse_date_param(self, date_str):
+        if not date_str:
+            return None
+        dt = parse_datetime(date_str)
+        if dt is None:
+            dt = parse_date(date_str)
+            if dt is not None:
+                dt = datetime.combine(dt, datetime.min.time()).replace(tzinfo=timezone.utc)
+        return dt
 
     def get_queryset(self):
         queryset = Candle.objects.all().order_by('datetime')
@@ -25,13 +35,15 @@ class CandleView(ListAPIView):
             queryset = queryset.filter(timeframe=timeframe)
 
         if from_str and timeframe:
-            from_dt = datetime.strptime(from_str, INTERVAL_DATE_FORMAT[timeframe])
-            queryset = queryset.filter(datetime__gte=from_dt)
+            from_dt = self._parse_date_param(from_str)
+            if from_dt:
+                queryset = queryset.filter(datetime__gte=from_dt)
 
         if to_str and timeframe:
-            to_dt = datetime.strptime(to_str, INTERVAL_DATE_FORMAT[timeframe])
-            queryset = queryset.filter(datetime__lte=to_dt)
-
+            to_dt = self._parse_date_param(to_str)
+            if to_dt:
+                queryset = queryset.filter(datetime__lte=to_dt) 
+                
         return queryset
 
 

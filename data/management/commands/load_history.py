@@ -3,10 +3,18 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 
-from data.constants import INTERVAL_DATE_FORMAT
 from data.services.twelvedata import TwelveDataService
 from data.models import Candle, Instrument
 
+
+INTERVAL_DATE_FORMAT = {
+    '5min': '%Y-%m-%d %H:%M:%S',
+    '1h': '%Y-%m-%d %H:%M:%S',
+    '4h': '%Y-%m-%d %H:%M:%S',
+    '1day': '%Y-%m-%d',
+    '1week': '%Y-%m-%d',
+    '1month': '%Y-%m-%d',
+}
 
 DEPTHS = {
     '5min': relativedelta(months=1),
@@ -20,7 +28,7 @@ DEPTHS = {
 class Command(BaseCommand):
     help = 'Загрузка определенной истории графика одного инструмента'
 
-    #получаем и записываем свечи в бд одного интервала
+    #получаем и записываем свечи в бд одного интервала(таймфрейма)
     def get_valid_candles(self, symbol, interval, lower_bound, upper_bound):
         twelve_data = TwelveDataService()
         candles = twelve_data.get_all_candles(symbol, interval, lower_bound, upper_bound)
