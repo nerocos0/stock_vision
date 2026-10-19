@@ -1,20 +1,12 @@
 from django.core.management.base import BaseCommand
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 
+from data.constants import INTERVAL_DATE_FORMAT
 from data.services.twelvedata import TwelveDataService
 from data.models import Candle, Instrument
 
-
-INTERVAL_DATE_FORMAT = {
-    '5min': '%Y-%m-%d %H:%M:%S',
-    '1h': '%Y-%m-%d %H:%M:%S',
-    '4h': '%Y-%m-%d %H:%M:%S',
-    '1day': '%Y-%m-%d',
-    '1week': '%Y-%m-%d',
-    '1month': '%Y-%m-%d',
-}
 
 DEPTHS = {
     '5min': relativedelta(months=1),
