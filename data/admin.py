@@ -13,4 +13,4 @@ class InstrumentAdmin(admin.ModelAdmin):
 class CandleAdmin(admin.ModelAdmin):
     list_display = ['instrument', 'timeframe', 'datetime', 'open_price', 'high_price', 'low_price', 'close_price']
     search_fields = ['instrument__code', 'timeframe']
-    list_filter = ['timeframe', 'datetime']
+    list_filter = ['timeframe', 'datetime', 'instrument']

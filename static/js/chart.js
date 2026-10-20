@@ -1,10 +1,8 @@
 import { fetchInstruments, fetchCandles } from './api.js';
 
-// Константы
+
 const DEFAULT_SYMBOL = 'EURUSD';
 const DEFAULT_TIMEFRAME = '1h';
-const DATE_FROM = '2026-09-01';
-const DATE_TO = '2026-10-15';
 
 const chartContainer = document.getElementById('chart-container');
 const chart = LightweightCharts.createChart(chartContainer, {
@@ -28,12 +26,35 @@ const candleSeries = chart.addCandlestickSeries({
     wickUpColor: '#26a69a', wickDownColor: '#ef5350'
 });
 
-let currentSymbol = DEFAULT_SYMBOL;
+const urlParams = new URLSearchParams(window.location.search);
+const symbolFromUrl = urlParams.get('symbol');
+
+let currentSymbol = symbolFromUrl ? symbolFromUrl : DEFAULT_SYMBOL;
 let currentTimeframe = DEFAULT_TIMEFRAME;
+
+function getDateMonthsAgo(months) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - months);
+    return date.toISOString().split('T')[0];
+}
 
 async function updateChart() {
     try {
-        const data = await fetchCandles(currentSymbol, currentTimeframe, DATE_FROM, DATE_TO);
+        const now = new Date();
+        const toDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        
+        let fromDate;
+        if (currentTimeframe === '5min') {
+            fromDate = getDateMonthsAgo(1);
+        } else if (currentTimeframe === '1h') {
+            fromDate = getDateMonthsAgo(12);
+        } else if (currentTimeframe === '4h') {
+            fromDate = getDateMonthsAgo(24);
+        } else {
+            fromDate = getDateMonthsAgo(60);
+        }
+
+        const data = await fetchCandles(currentSymbol, currentTimeframe, fromDate, toDate);
         
         const formattedData = data.results.map(candle => ({
             time: Math.floor(new Date(candle.datetime).getTime() / 1000),
@@ -81,6 +102,10 @@ function setupEventListeners() {
 
     document.getElementById('symbol-select').addEventListener('change', (event) => {
         currentSymbol = event.target.value;
+        
+        const newUrl = `${window.location.pathname}?symbol=${currentSymbol}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+        
         updateChart();
     });
 }

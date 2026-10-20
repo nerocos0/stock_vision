@@ -57,7 +57,7 @@ class Command(BaseCommand):
             lower_bound_dt = now - depth
             lower_bound_str = datetime.strftime(lower_bound_dt, '%Y-%m-%d %H:%M:%S')
             all_candles_model_list.extend(self.get_valid_candles(
-                symbol='EUR/USD',
+                symbol='XAU/USD',
                 interval=interval,
                 lower_bound=lower_bound_str,
                 upper_bound=now_str

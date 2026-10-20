@@ -18,7 +18,7 @@ async function initDashboard() {
             card.className = 'card';
             
             card.onclick = () => {
-                window.location.href = '/chart/';
+                window.location.href = `/chart/?symbol=${inst.code}`;
             };
 
             card.innerHTML = `
