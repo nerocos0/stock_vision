@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/', include('data.urls')),
     path('api/auth/', include('users.urls')),
 
+    path('auth/', TemplateView.as_view(template_name='auth.html'), name='auth'),
     path('', TemplateView.as_view(template_name='index.html'), name='dashboard'),
     path('chart/', TemplateView.as_view(template_name='chart.html'), name='chart'),
 

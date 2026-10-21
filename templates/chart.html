@@ -15,6 +15,10 @@
         <a href="/" class="logo" style="text-decoration: none;">StockVision</a>
         
         <div class="controls">
+                <button id="fav-btn" class="auth-btn fav" style="display: none; margin-right: 10px;">
+                    В избранное
+                </button>
+
             <select id="symbol-select">
                 <option value="EURUSD">Загрузка...</option>
             </select>
@@ -28,6 +32,8 @@
                 <button class="tf-btn" data-tf="1month">1M</button>
             </div>
         </div>
+
+        <div id="auth-buttons"></div>
     </header>
 
     <div id="chart-container"></div>

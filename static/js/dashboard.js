@@ -1,4 +1,5 @@
 import { fetchSummary } from './api.js';
+import { initAuthUI } from './auth.js';
 
 async function initDashboard() {
     const grid = document.getElementById('cards-grid');
@@ -42,3 +43,4 @@ async function initDashboard() {
 }
 
 initDashboard();
+initAuthUI();

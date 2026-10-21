@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from django.contrib.auth.models import User
 from .models import FavoriteInstrument
+from data.models import Instrument
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
@@ -30,6 +31,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class FavoriteInstrumentSerializer(serializers.ModelSerializer):
     instrument_code = serializers.CharField(source='instrument.code', read_only=True)
+    
+    instrument = serializers.SlugRelatedField(
+        queryset=Instrument.objects.all(),
+        slug_field='code',
+        write_only=True
+    )
 
     class Meta:
         model = FavoriteInstrument

@@ -14,5 +14,5 @@ class CandleSerializer(serializers.ModelSerializer):
 class InstrumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instrument
-        fields = ['code', 'name', 'instrument_type', 'is_active']
+        fields = ['id', 'code', 'name', 'instrument_type', 'is_active']
         read_only_fields = fields

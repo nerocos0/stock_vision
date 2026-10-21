@@ -5,7 +5,9 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
 }
 
-/* Шапка сайта */
+/* =========================================
+   ШАПКА САЙТА
+   ========================================= */
 header {
     background: #1e222d;
     padding: 10px 20px;
@@ -22,15 +24,19 @@ header {
     font-size: 20px;
     font-weight: bold;
     letter-spacing: 1px;
+    text-decoration: none;
 }
 
 .controls {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
+    flex-wrap: wrap; /* Чтобы на узких экранах элементы переносились */
 }
 
-/* Выпадающий список инструментов */
+/* =========================================
+   ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (ГРАФИК)
+   ========================================= */
 #symbol-select {
     background: #131722;
     color: white;
@@ -43,7 +49,6 @@ header {
 }
 #symbol-select:focus { border-color: #2962FF; }
 
-/* Панель таймфреймов */
 .timeframes {
     display: flex;
     gap: 5px;
@@ -68,28 +73,26 @@ header {
 .tf-btn:hover { background: #2B2B43; color: white; }
 .tf-btn.active { background: #2962FF; color: white; }
 
-/* Контейнер графика */
 #chart-container {
     width: 100vw;
     height: calc(100vh - 60px);
 }
 
-/* --- СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ --- */
-
+/* =========================================
+   ГЛАВНАЯ СТРАНИЦА (ДАШБОРД)
+   ========================================= */
 .dashboard-container {
     padding: 30px 40px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
-/* Адаптивная сетка (сама расставит карточки) */
 .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
 
-/* Сама карточка */
 .card {
     background: #1e222d;
     border: 1px solid #2B2B43;
@@ -129,11 +132,161 @@ header {
     margin-bottom: 5px;
 }
 
-/* Цвета изменений */
 .price-up { color: #26a69a; }
 .price-down { color: #ef5350; }
 
 .card-change {
     font-size: 15px;
     font-weight: 500;
+}
+
+/* =========================================
+   АВТОРИЗАЦИЯ (ЛОГИН/РЕГИСТРАЦИЯ)
+   ========================================= */
+.auth-tabs {
+    display: flex;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #2B2B43;
+}
+
+.auth-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #787b86;
+    font-size: 16px;
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.auth-tab:hover { color: white; }
+.auth-tab.active { color: white; border-bottom-color: #2962FF; }
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 60px);
+}
+
+.login-box {
+    background: #1e222d;
+    padding: 40px;
+    border-radius: 8px;
+    border: 1px solid #2B2B43;
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-box h2 {
+    color: white;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+.form-group { margin-bottom: 20px; }
+
+.form-group label {
+    display: block;
+    color: #d1d4dc;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    background: #131722;
+    border: 1px solid #2B2B43;
+    border-radius: 4px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.form-group input:focus { border-color: #2962FF; }
+
+.btn-submit {
+    width: 100%;
+    padding: 12px;
+    background: #2962FF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: background 0.2s;
+}
+
+.btn-submit:hover { background: #1e53e5; }
+
+.error-msg {
+    color: #ef5350;
+    font-size: 14px;
+    margin-top: 15px;
+    text-align: center;
+    display: none;
+}
+
+/* =========================================
+   КНОПКИ В ШАПКЕ (Войти, Выйти, Избранное)
+   ========================================= */
+.auth-btn {
+    color: #d1d4dc;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid #2B2B43;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.auth-btn:hover {
+    background: #2B2B43;
+    color: white;
+}
+
+.auth-btn.logout {
+    border-color: #ef5350;
+    color: #ef5350;
+}
+
+.auth-btn.logout:hover {
+    background: #ef5350;
+    color: white;
+}
+
+/* Стиль для звездочки Избранного */
+.auth-btn.fav {
+    border-color: #F9A825;
+    color: #F9A825;
+}
+
+.auth-btn.fav:hover {
+    background: #F9A825;
+    color: black;
+}
+
+.auth-btn.fav.active {
+    background: #F9A825;
+    color: black;
+}
+
+/* =========================================
+   АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)
+   ========================================= */
+@media (max-width: 768px) {
+    .dashboard-container { padding: 20px 15px; }
+    header { padding: 10px; }
+    .controls { gap: 10px; }
 }

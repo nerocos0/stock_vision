@@ -1,5 +1,5 @@
-import { fetchInstruments, fetchCandles } from './api.js';
-
+import { fetchInstruments, fetchCandles, addFavorite, removeFavorite, fetchFavorites } from './api.js';
+import { initAuthUI } from './auth.js';
 
 const DEFAULT_SYMBOL = 'EURUSD';
 const DEFAULT_TIMEFRAME = '1h';
@@ -107,7 +107,53 @@ function setupEventListeners() {
         window.history.pushState({ path: newUrl }, '', newUrl);
         
         updateChart();
+        updateFavoriteButton();
     });
+}
+
+async function updateFavoriteButton() {
+    const favBtn = document.getElementById('fav-btn');
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+        favBtn.style.display = 'none';
+        return;
+    }
+
+    favBtn.style.display = 'block';
+
+    try {
+        const favoritesData = await fetchFavorites();
+        const favorite = favoritesData.results.find(fav => fav.instrument_code === currentSymbol);
+
+        if (favorite) {
+            favBtn.textContent = '⭐';
+            favBtn.classList.add('active');
+            
+            favBtn.onclick = async () => {
+                try {
+                    await removeFavorite(favorite.id);
+                    updateFavoriteButton();
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+        } else {
+            favBtn.textContent = '⭐';
+            favBtn.classList.remove('active');
+            
+            favBtn.onclick = async () => {
+                try {
+                    await addFavorite(currentSymbol);
+                    updateFavoriteButton();
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+        }
+    } catch (error) {
+        console.error("Ошибка при проверке избранного:", error);
+    }
 }
 
 
@@ -115,6 +161,8 @@ async function init() {
     await initInstruments();
     setupEventListeners();
     await updateChart();
+    await updateFavoriteButton();
 }
 
 init();
+initAuthUI();
