@@ -78,6 +78,46 @@ header {
     height: calc(100vh - 60px);
 }
 
+/* Выпадающее меню индикаторов */
+.indicator-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    display: none; /* Скрыто по умолчанию */
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #1e222d;
+    border: 1px solid #2B2B43;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 100;
+    width: 150px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+/* Показываем меню, если у родителя есть класс 'open' */
+.indicator-dropdown.open .dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dropdown-menu label {
+    color: #d1d4dc;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-menu label:hover {
+    color: white;
+}
+
 /* =========================================
    ГЛАВНАЯ СТРАНИЦА (ДАШБОРД)
    ========================================= */

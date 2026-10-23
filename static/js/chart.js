@@ -1,4 +1,4 @@
-import { fetchInstruments, fetchCandles, addFavorite, removeFavorite, fetchFavorites } from './api.js';
+import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites } from './api.js';
 import { initAuthUI } from './auth.js';
 
 const DEFAULT_SYMBOL = 'EURUSD';
@@ -24,6 +24,65 @@ window.addEventListener('resize', () => {
 const candleSeries = chart.addCandlestickSeries({
     upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
     wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+});
+
+
+const emaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2 });
+const smaSeries = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
+
+
+const dropBtn = document.getElementById('indicator-btn');
+const dropMenu = document.querySelector('.indicator-dropdown');
+
+dropBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropMenu.classList.toggle('open');
+});
+
+document.addEventListener('click', (e) => {
+    if (!dropMenu.contains(e.target)) {
+        dropMenu.classList.remove('open');
+    }
+});
+
+document.getElementById('chk-rsi').addEventListener('change', async (e) => {
+    if (e.target.checked) {
+        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'rsi', 14, '2026-09-01', new Date().toISOString().split('T')[0]);
+        rsiSeries.setData(data);
+    } else {
+        rsiSeries.setData([]);
+    }
+});
+
+document.getElementById('chk-ema').addEventListener('change', async (e) => {
+    if (e.target.checked) {
+        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'ema', 20, '2026-09-01', new Date().toISOString().split('T')[0]);
+        emaSeries.setData(data);
+    } else {
+        emaSeries.setData([]);
+    }
+});
+
+document.getElementById('chk-sma').addEventListener('change', async (e) => {
+    if (e.target.checked) {
+        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'sma', 50, '2026-09-01', new Date().toISOString().split('T')[0]);
+        smaSeries.setData(data);
+    } else {
+        smaSeries.setData([]);
+    }
+});
+
+const rsiSeries = chart.addLineSeries({
+    color: '#7E57C2',
+    lineWidth: 2,
+    priceScaleId: 'rsi',
+});
+
+chart.priceScale('rsi').applyOptions({
+    scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+    },
 });
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -66,6 +125,21 @@ async function updateChart() {
 
         candleSeries.setData(formattedData);
         chart.timeScale().fitContent();
+
+        if (typeof emaSeries !== 'undefined') emaSeries.setData([]);
+        if (typeof smaSeries !== 'undefined') smaSeries.setData([]);
+        if (typeof rsiSeries !== 'undefined') rsiSeries.setData([]);
+        
+        if (document.getElementById('chk-rsi').checked) {
+            document.getElementById('chk-rsi').dispatchEvent(new Event('change'));
+        }
+        if (document.getElementById('chk-ema').checked) {
+            document.getElementById('chk-ema').dispatchEvent(new Event('change'));
+        }
+        if (document.getElementById('chk-sma').checked) {
+            document.getElementById('chk-sma').dispatchEvent(new Event('change'));
+        }
+
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
     }

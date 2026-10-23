@@ -79,3 +79,11 @@ export async function fetchFavorites() {
     
     return await response.json();
 }
+
+// Получить значения индикатора (например, RSI)
+export async function fetchIndicator(symbol, timeframe, type, period, fromDate, toDate) {
+    const url = `${API_BASE}/indicators/?symbol=${symbol}&timeframe=${timeframe}&type=${type}&period=${period}&from=${fromDate}&to=${toDate}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Ошибка загрузки индикатора');
+    return await response.json();
+}
