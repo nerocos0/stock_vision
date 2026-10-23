@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,11 +11,17 @@ from django.utils.dateparse import parse_datetime, parse_date
 from .models import Candle, Instrument
 from .serializers import CandleSerializer, InstrumentSerializer
 from .services.twelvedata import TwelveDataService
+from .services.indicators import calculate_rsi, calculate_ema, calculate_sma
 
 
-class CandleView(ListAPIView):
-    serializer_class = CandleSerializer
+INDICATORS_MAP = {
+    'rsi': calculate_rsi,
+    'ema': calculate_ema,
+    'sma': calculate_sma
+}
 
+
+class DateParseMixin:
     def _parse_date_param(self, date_str):
         if not date_str:
             return None
@@ -23,7 +30,11 @@ class CandleView(ListAPIView):
             dt = parse_date(date_str)
             if dt is not None:
                 dt = datetime.combine(dt, datetime.min.time()).replace(tzinfo=timezone.utc)
-        return dt
+        return dt    
+
+
+class CandleView(DateParseMixin, ListAPIView):
+    serializer_class = CandleSerializer
 
     def get_queryset(self):
         queryset = Candle.objects.all().order_by('datetime')
@@ -67,6 +78,7 @@ class InstrumentView(ReadOnlyModelViewSet):
             data_list = []
             for instrument in instruments:
                 twelve_data = TwelveDataService()
+
                 #пока преобразование оставим так, потом можно будет реализовать список известных валют
                 api_symbol = f"{instrument.code[:3]}/{instrument.code[3:]}"
                 data = twelve_data.get_instrument_changes(symbol=api_symbol)
@@ -74,3 +86,57 @@ class InstrumentView(ReadOnlyModelViewSet):
 
         return Response(data=data_list)
 
+class IndicatorView(DateParseMixin, APIView):
+    def get(self, request):
+        indicator_type = self.request.query_params.get('type')
+        symbol = self.request.query_params.get('symbol')
+        timeframe = self.request.query_params.get('timeframe')
+        from_str = self.request.query_params.get('from')
+        to_str = self.request.query_params.get('to')
+        period = int(self.request.query_params.get('period', 14))
+
+        calculate_func = INDICATORS_MAP.get(indicator_type)
+        if not calculate_func:
+            return Response({"error": f"Индикатор '{indicator_type}' не поддерживается"}, status=400)
+
+        to_dt = self._parse_date_param(to_str) or datetime.now(timezone.utc)
+        from_dt = self._parse_date_param(from_str)
+
+        main_candles = list(Candle.objects.filter(
+            instrument__code=symbol,
+            timeframe=timeframe,
+            datetime__lte=to_dt,
+            datetime__gte=from_dt
+            ).order_by('datetime'))
+
+        count_main_candles = len(main_candles)
+
+        warmup = period * 4
+
+        warmup_candles = list(Candle.objects.filter(
+            instrument__code=symbol,
+            timeframe=timeframe,
+            datetime__lt=from_dt,
+        ).order_by('-datetime')[:warmup])
+        warmup_candles.reverse()
+
+        all_candles = warmup_candles + main_candles
+
+        close_prices = [float(candle.close_price) for candle in all_candles]
+
+        values = list(calculate_func(close_prices, period))
+        main_values = values[-count_main_candles:]
+
+        result = []
+        for i in range(count_main_candles):
+            candle = main_candles[i]
+            value = main_values[i]
+
+            timestamp = int(candle.datetime.timestamp())
+
+            result.append({
+                'time': timestamp,
+                'value': round(value, 4),
+            })
+
+        return Response(result)

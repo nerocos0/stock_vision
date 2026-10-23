@@ -19,7 +19,7 @@ class Instrument(models.Model):
 class Candle(models.Model):
     instrument = models.ForeignKey(Instrument, on_delete=models.CASCADE, related_name='candles')
     timeframe = models.CharField(max_length=10)
-    datetime = models.DateTimeField(db_index=True)
+    datetime = models.DateTimeField()
     open_price = models.DecimalField(max_digits=20, decimal_places=10)
     high_price = models.DecimalField(max_digits=20, decimal_places=10)
     low_price = models.DecimalField(max_digits=20, decimal_places=10)
