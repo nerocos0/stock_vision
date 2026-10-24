@@ -5,7 +5,7 @@ from .views import CandleView, InstrumentView, IndicatorView
 app_name = 'data'
 
 router = DefaultRouter()
-router.register(r'instruments', InstrumentView, basename='instrument')
+router.register(r'instruments', InstrumentView, basename='instruments')
 
 urlpatterns = [
     path('candles/', CandleView.as_view(), name='candle-list'),

@@ -27,11 +27,16 @@ class DateParseMixin:
         if not date_str:
             return None
         dt = parse_datetime(date_str)
-        if dt is None:
-            dt = parse_date(date_str)
-            if dt is not None:
-                dt = datetime.combine(dt, datetime.min.time()).replace(tzinfo=timezone.utc)
-        return dt    
+        if dt is not None:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+            
+        d = parse_date(date_str)
+        if d is not None:
+            dt = datetime.combine(d, datetime.min.time()).replace(tzinfo=timezone.utc)
+            return dt
+        return None   
 
 
 class CandleView(DateParseMixin, ListAPIView):
