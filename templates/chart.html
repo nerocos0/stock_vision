@@ -4,20 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <title>StockVision Chart</title>
-    
     <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
-    
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
 
     <header>
-        <a href="/" class="logo" style="text-decoration: none;">StockVision</a>
+        <a href="/" class="logo">StockVision</a>
         
         <div class="controls">
-                <button id="fav-btn" class="auth-btn fav" style="display: none; margin-right: 10px;">
-                    В избранное
-                </button>
+            <button id="fav-btn" class="auth-btn fav" style="display: none;">
+                ⭐ В избранное
+            </button>
 
             <select id="symbol-select">
                 <option value="EURUSD">Загрузка...</option>
@@ -28,7 +26,7 @@
                 <button class="tf-btn active" data-tf="1h">1h</button>
                 <button class="tf-btn" data-tf="4h">4h</button>
                 <button class="tf-btn" data-tf="1day">1D</button>
-                <button class="tf-btn" data-tf="1week">1H</button>
+                <button class="tf-btn" data-tf="1week">1W</button> <!-- Исправил 1H на 1W -->
                 <button class="tf-btn" data-tf="1month">1M</button>
             </div>
 
@@ -46,8 +44,6 @@
     </header>
 
     <div id="chart-container"></div>
-    
     <script type="module" src="{% static 'js/chart.js' %}"></script>
-
 </body>
 </html>

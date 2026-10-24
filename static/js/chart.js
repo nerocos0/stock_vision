@@ -1,9 +1,29 @@
 import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites } from './api.js';
 import { initAuthUI } from './auth.js';
 
+// ==========================================
+// 1. КОНСТАНТЫ И СОСТОЯНИЕ (STATE)
+// ==========================================
 const DEFAULT_SYMBOL = 'EURUSD';
 const DEFAULT_TIMEFRAME = '1h';
 
+// Единое состояние приложения
+const state = {
+    symbol: DEFAULT_SYMBOL,
+    timeframe: DEFAULT_TIMEFRAME,
+    activeIndicators: new Set(), // Храним включенные индикаторы (rsi, ema, sma)
+};
+
+// Настройки периодов для индикаторов
+const INDICATOR_PERIODS = {
+    rsi: 14,
+    ema: 20,
+    sma: 50
+};
+
+// ==========================================
+// 2. ИНИЦИАЛИЗАЦИЯ ГРАФИКА
+// ==========================================
 const chartContainer = document.getElementById('chart-container');
 const chart = LightweightCharts.createChart(chartContainer, {
     width: chartContainer.clientWidth,
@@ -21,99 +41,47 @@ window.addEventListener('resize', () => {
     });
 });
 
+// Создаем серии (графики)
 const candleSeries = chart.addCandlestickSeries({
     upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
     wickUpColor: '#26a69a', wickDownColor: '#ef5350'
 });
 
-
 const emaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2 });
 const smaSeries = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
 
-
-const dropBtn = document.getElementById('indicator-btn');
-const dropMenu = document.querySelector('.indicator-dropdown');
-
-dropBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropMenu.classList.toggle('open');
-});
-
-document.addEventListener('click', (e) => {
-    if (!dropMenu.contains(e.target)) {
-        dropMenu.classList.remove('open');
-    }
-});
-
-document.getElementById('chk-rsi').addEventListener('change', async (e) => {
-    if (e.target.checked) {
-        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'rsi', 14, '2026-09-01', new Date().toISOString().split('T')[0]);
-        rsiSeries.setData(data);
-    } else {
-        rsiSeries.setData([]);
-    }
-});
-
-document.getElementById('chk-ema').addEventListener('change', async (e) => {
-    if (e.target.checked) {
-        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'ema', 20, '2026-09-01', new Date().toISOString().split('T')[0]);
-        emaSeries.setData(data);
-    } else {
-        emaSeries.setData([]);
-    }
-});
-
-document.getElementById('chk-sma').addEventListener('change', async (e) => {
-    if (e.target.checked) {
-        const data = await fetchIndicator(currentSymbol, currentTimeframe, 'sma', 50, '2026-09-01', new Date().toISOString().split('T')[0]);
-        smaSeries.setData(data);
-    } else {
-        smaSeries.setData([]);
-    }
-});
-
-const rsiSeries = chart.addLineSeries({
-    color: '#7E57C2',
-    lineWidth: 2,
-    priceScaleId: 'rsi',
-});
-
+const rsiSeries = chart.addLineSeries({ color: '#7E57C2', lineWidth: 2, priceScaleId: 'rsi' });
 chart.priceScale('rsi').applyOptions({
-    scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-    },
+    scaleMargins: { top: 0.8, bottom: 0 },
 });
 
-const urlParams = new URLSearchParams(window.location.search);
-const symbolFromUrl = urlParams.get('symbol');
-
-let currentSymbol = symbolFromUrl ? symbolFromUrl : DEFAULT_SYMBOL;
-let currentTimeframe = DEFAULT_TIMEFRAME;
-
-function getDateMonthsAgo(months) {
+// ==========================================
+// 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ==========================================
+function getDateRange(timeframe) {
+    const now = new Date();
+    const toDate = now.toISOString().split('T')[0];
     const date = new Date();
-    date.setMonth(date.getMonth() - months);
-    return date.toISOString().split('T')[0];
+    
+    let monthsToSubtract = 12; // Дефолт
+    if (timeframe === '5min') monthsToSubtract = 1;
+    else if (timeframe === '1h') monthsToSubtract = 12;
+    else if (timeframe === '4h') monthsToSubtract = 24;
+    else monthsToSubtract = 60;
+
+    date.setMonth(date.getMonth() - monthsToSubtract);
+    const fromDate = date.toISOString().split('T')[0];
+    
+    return { fromDate, toDate };
 }
 
+// ==========================================
+// 4. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ
+// ==========================================
 async function updateChart() {
     try {
-        const now = new Date();
-        const toDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-        
-        let fromDate;
-        if (currentTimeframe === '5min') {
-            fromDate = getDateMonthsAgo(1);
-        } else if (currentTimeframe === '1h') {
-            fromDate = getDateMonthsAgo(12);
-        } else if (currentTimeframe === '4h') {
-            fromDate = getDateMonthsAgo(24);
-        } else {
-            fromDate = getDateMonthsAgo(60);
-        }
-
-        const data = await fetchCandles(currentSymbol, currentTimeframe, fromDate, toDate);
+        const { fromDate, toDate } = getDateRange(state.timeframe);
+        const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
         
         const formattedData = data.results.map(candle => ({
             time: Math.floor(new Date(candle.datetime).getTime() / 1000),
@@ -124,27 +92,47 @@ async function updateChart() {
         }));
 
         candleSeries.setData(formattedData);
-        chart.timeScale().fitContent();
-
-        if (typeof emaSeries !== 'undefined') emaSeries.setData([]);
-        if (typeof smaSeries !== 'undefined') smaSeries.setData([]);
-        if (typeof rsiSeries !== 'undefined') rsiSeries.setData([]);
         
-        if (document.getElementById('chk-rsi').checked) {
-            document.getElementById('chk-rsi').dispatchEvent(new Event('change'));
-        }
-        if (document.getElementById('chk-ema').checked) {
-            document.getElementById('chk-ema').dispatchEvent(new Event('change'));
-        }
-        if (document.getElementById('chk-sma').checked) {
-            document.getElementById('chk-sma').dispatchEvent(new Event('change'));
-        }
-
+        // ВАЖНО: Сначала ждем загрузки всех индикаторов
+        await updateAllActiveIndicators();
+        
+        // И ТОЛЬКО ПОТОМ делаем автомасштаб (fitContent)
+        // Даем браузеру микросекунду отрисовать данные
+        setTimeout(() => chart.timeScale().fitContent(), 10);
+        
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
     }
 }
 
+async function updateIndicator(type) {
+    const seriesMap = { rsi: rsiSeries, ema: emaSeries, sma: smaSeries };
+    const series = seriesMap[type];
+    const period = INDICATOR_PERIODS[type];
+    
+    if (!state.activeIndicators.has(type)) {
+        series.setData([]); // Очищаем, если выключен
+        return;
+    }
+
+    try {
+        const { fromDate, toDate } = getDateRange(state.timeframe);
+        const data = await fetchIndicator(state.symbol, state.timeframe, type, period, fromDate, toDate);
+        series.setData(data);
+    } catch (error) {
+        console.error(`Ошибка загрузки ${type}:`, error);
+    }
+}
+
+async function updateAllActiveIndicators() {
+    for (const type of ['rsi', 'ema', 'sma']) {
+        await updateIndicator(type);
+    }
+}
+
+// ==========================================
+// 5. ИНИЦИАЛИЗАЦИЯ ИНСТРУМЕНТОВ (СЕЛЕКТ)
+// ==========================================
 async function initInstruments() {
     try {
         const data = await fetchInstruments();
@@ -155,7 +143,7 @@ async function initInstruments() {
             const option = document.createElement('option');
             option.value = inst.code;
             option.textContent = `${inst.code} — ${inst.name}`;
-            if (inst.code === currentSymbol) option.selected = true;
+            if (inst.code === state.symbol) option.selected = true;
             select.appendChild(option);
         });
     } catch (error) {
@@ -163,28 +151,9 @@ async function initInstruments() {
     }
 }
 
-function setupEventListeners() {
-    document.querySelectorAll('.tf-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            currentTimeframe = event.target.dataset.tf;
-            updateChart();
-        });
-    });
-
-    document.getElementById('symbol-select').addEventListener('change', (event) => {
-        currentSymbol = event.target.value;
-        
-        const newUrl = `${window.location.pathname}?symbol=${currentSymbol}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-        
-        updateChart();
-        updateFavoriteButton();
-    });
-}
-
+// ==========================================
+// 6. ИЗБРАННОЕ (КНОПКА В ШАПКЕ)
+// ==========================================
 async function updateFavoriteButton() {
     const favBtn = document.getElementById('fav-btn');
     const token = localStorage.getItem('access_token');
@@ -198,31 +167,21 @@ async function updateFavoriteButton() {
 
     try {
         const favoritesData = await fetchFavorites();
-        const favorite = favoritesData.results.find(fav => fav.instrument_code === currentSymbol);
+        const favorite = favoritesData.results.find(fav => fav.instrument_code === state.symbol);
 
         if (favorite) {
-            favBtn.textContent = '⭐';
+            favBtn.textContent = '⭐ В избранном';
             favBtn.classList.add('active');
-            
             favBtn.onclick = async () => {
-                try {
-                    await removeFavorite(favorite.id);
-                    updateFavoriteButton();
-                } catch (error) {
-                    console.error(error);
-                }
+                await removeFavorite(favorite.id);
+                await updateFavoriteButton();
             };
         } else {
-            favBtn.textContent = '⭐';
+            favBtn.textContent = '⭐ В избранное';
             favBtn.classList.remove('active');
-            
             favBtn.onclick = async () => {
-                try {
-                    await addFavorite(currentSymbol);
-                    updateFavoriteButton();
-                } catch (error) {
-                    console.error(error);
-                }
+                await addFavorite(state.symbol);
+                await updateFavoriteButton();
             };
         }
     } catch (error) {
@@ -230,8 +189,65 @@ async function updateFavoriteButton() {
     }
 }
 
+// ==========================================
+// 7. ОБРАБОТЧИКИ СОБЫТИЙ
+// ==========================================
+function setupEventListeners() {
+    // Переключение ТФ
+    document.querySelectorAll('.tf-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
 
+            state.timeframe = event.target.dataset.tf;
+            updateChart();
+        });
+    });
+
+    // Смена инструмента
+    document.getElementById('symbol-select').addEventListener('change', (event) => {
+        state.symbol = event.target.value;
+        window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
+        
+        updateChart();
+        updateFavoriteButton();
+    });
+
+    // Открытие/закрытие меню индикаторов
+    const dropBtn = document.getElementById('indicator-btn');
+    const dropMenu = document.querySelector('.indicator-dropdown');
+    
+    dropBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropMenu.classList.toggle('open');
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!dropMenu.contains(e.target)) dropMenu.classList.remove('open');
+    });
+
+    // Чекбоксы индикаторов
+    ['rsi', 'ema', 'sma'].forEach(type => {
+        document.getElementById(`chk-${type}`).addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.activeIndicators.add(type);
+            } else {
+                state.activeIndicators.delete(type);
+            }
+            updateIndicator(type);
+        });
+    });
+}
+
+// ==========================================
+// 8. ТОЧКА ВХОДА
+// ==========================================
 async function init() {
+    // Берем символ из URL, если он там есть
+    const urlParams = new URLSearchParams(window.location.search);
+    const symbolFromUrl = urlParams.get('symbol');
+    if (symbolFromUrl) state.symbol = symbolFromUrl;
+
     await initInstruments();
     setupEventListeners();
     await updateChart();

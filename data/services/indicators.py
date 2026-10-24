@@ -10,12 +10,14 @@ import numpy as np
 
 """SMA(скользящая средняя) это индикатор, который жестко считает среднюю цену актива за определенный период времени. для подсчета нужно минимум period свечей"""
 def calculate_sma(prices, period):
-    return pd.Series(prices).rolling(window=period).mean()
+    sma = pd.Series(prices).rolling(window=period).mean()
+    return sma.where(pd.notnull(sma), None)
 
 
 """EMA(экспоненциальная скользящая средняя) это индикатор, считающий среднюю цену актива за определенный период времени, придавая больший вес последним (свежим) ценам"""
 def calculate_ema(prices, period):
-    return pd.Series(prices).ewm(span=period, adjust=False).mean()
+    ema = pd.Series(prices).ewm(span=period, adjust=False).mean()
+    return ema.where(pd.notnull(ema), None)
 
 
 """RSI(Индекс относительной силы) это осциллятор, который измеряет скорость и силу изменения цены актива(0-100%)"""

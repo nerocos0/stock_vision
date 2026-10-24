@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from datetime import datetime, timezone
 from django.utils.dateparse import parse_datetime, parse_date
+from dateutil.relativedelta import relativedelta
 
 from .models import Candle, Instrument
 from .serializers import CandleSerializer, InstrumentSerializer
@@ -101,6 +102,9 @@ class IndicatorView(DateParseMixin, APIView):
 
         to_dt = self._parse_date_param(to_str) or datetime.now(timezone.utc)
         from_dt = self._parse_date_param(from_str)
+        if from_dt is None:
+            #Если from не передан, берем данные за последние 30 дней
+            from_dt = to_dt - relativedelta(days=30)
 
         main_candles = list(Candle.objects.filter(
             instrument__code=symbol,
