@@ -8,6 +8,7 @@ class FavoriteInstrument(models.Model):
 
     class Meta:
         unique_together = ('user', 'instrument')
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.user.username} - {self.instrument.code}"
