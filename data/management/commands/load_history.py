@@ -4,17 +4,9 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 
 from data.services.twelvedata import TwelveDataService
+from data.services.candle_saver import validate_candles_for_db
 from data.models import Candle, Instrument
 
-
-INTERVAL_DATE_FORMAT = {
-    '5min': '%Y-%m-%d %H:%M:%S',
-    '1h': '%Y-%m-%d %H:%M:%S',
-    '4h': '%Y-%m-%d %H:%M:%S',
-    '1day': '%Y-%m-%d',
-    '1week': '%Y-%m-%d',
-    '1month': '%Y-%m-%d',
-}
 
 DEPTHS = {
     '5min': relativedelta(months=1),
@@ -25,29 +17,19 @@ DEPTHS = {
     '1month': relativedelta(years=5),
 }
 
+#получаем и записываем свечи в бд одного интервала(таймфрейма)
 class Command(BaseCommand):
     help = 'Загрузка определенной истории графика одного инструмента'
 
-    #получаем и записываем свечи в бд одного интервала(таймфрейма)
-    def get_valid_candles(self, symbol, interval, lower_bound, upper_bound):
+    def get_valid_candles(self, api_symbol, interval, lower_bound, upper_bound):
         twelve_data = TwelveDataService()
-        candles = twelve_data.get_all_candles(symbol, interval, lower_bound, upper_bound)
-        models_list = []
-        for candle in candles:
-            fmt = INTERVAL_DATE_FORMAT[interval]
-            candle['datetime'] = datetime.strptime(candle['datetime'], fmt).replace(tzinfo=timezone.utc)
-            instrument = Instrument.objects.get(code=symbol.replace('/', ''))
-            new_instance = Candle(
-                instrument=instrument,
-                timeframe=interval,
-                datetime=candle['datetime'],
-                open_price=Decimal(candle['open']),
-                high_price=Decimal(candle['high']),
-                low_price=Decimal(candle['low']),
-                close_price=Decimal(candle['close']),
-            )
-            models_list.append(new_instance)
-        return models_list
+        candles = twelve_data.get_all_candles(api_symbol, interval, lower_bound, upper_bound)
+        validated_candles = validate_candles_for_db(
+            candles=candles,
+            symbol=api_symbol.replace('/', ''),
+            interval=interval
+        )
+        return validated_candles
 
     def handle(self, *args, **options):
         now = datetime.now()
@@ -57,7 +39,7 @@ class Command(BaseCommand):
             lower_bound_dt = now - depth
             lower_bound_str = datetime.strftime(lower_bound_dt, '%Y-%m-%d %H:%M:%S')
             all_candles_model_list.extend(self.get_valid_candles(
-                symbol='XAU/USD',
+                api_symbol='GBP/USD',
                 interval=interval,
                 lower_bound=lower_bound_str,
                 upper_bound=now_str

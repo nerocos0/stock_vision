@@ -1,3 +1,4 @@
+import math
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -140,6 +141,9 @@ class IndicatorView(DateParseMixin, APIView):
         for i in range(count_main_candles):
             candle = main_candles[i]
             value = main_values[i]
+
+            if value is None or (isinstance(value, float) and math.isnan(value)):
+                continue
 
             timestamp = int(candle.datetime.timestamp())
 
