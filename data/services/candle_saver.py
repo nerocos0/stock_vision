@@ -18,12 +18,16 @@ def validate_candles_for_db(candles, symbol, interval):
     instrument = Instrument.objects.get(code=symbol)    
     models_list = []
     for candle in candles:
-        fmt = INTERVAL_DATE_FORMAT[interval]
-        candle['datetime'] = datetime.strptime(candle['datetime'], fmt).replace(tzinfo=timezone.utc)
+        dt = candle['datetime']
+
+        if isinstance(dt, str):
+            fmt = INTERVAL_DATE_FORMAT[interval]
+            dt = datetime.strptime(dt, fmt).replace(tzinfo=timezone.utc)
+
         new_instance = Candle(
             instrument=instrument,
             timeframe=interval,
-            datetime=candle['datetime'],
+            datetime=dt,
             open_price=Decimal(candle['open']),
             high_price=Decimal(candle['high']),
             low_price=Decimal(candle['low']),
