@@ -56,7 +56,7 @@ def update_realtime_5m_candles(symbol):
         raise UpdateRealtime5mCandlesError(f'Инструмент {symbol} не найден или неактивен')
 
     last_5m_candle = Candle.objects.filter(instrument=instrument, timeframe=timeframe).order_by('-datetime').first()
-    if last_5m_candle:
+    if last_5m_candle and last_5m_candle.datetime < now:
         start_date = last_5m_candle.datetime.strftime('%Y-%m-%d %H:%M:%S')
     else:
         start_date = (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')

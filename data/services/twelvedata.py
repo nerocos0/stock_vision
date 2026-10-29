@@ -43,7 +43,8 @@ class TwelveDataService:
             'interval': interval,
             'start_date': start_date,
             'end_date': end_date,
-            'outputsize': outputsize
+            'outputsize': outputsize,
+            'timezone': 'UTC'
         }
         response = requests.get(url, params=params)
         response.raise_for_status()
