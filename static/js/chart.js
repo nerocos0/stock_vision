@@ -60,7 +60,7 @@ chart.priceScale('rsi').applyOptions({
 // ==========================================
 function getDateRange(timeframe) {
     const now = new Date();
-    const toDate = now.toISOString().split('T')[0];
+    const toDate = now.toISOString().split('T')[0] + ' 23:59:59';
     const date = new Date();
     
     let monthsToSubtract = 12; // Дефолт
