@@ -1,4 +1,5 @@
 import math
+from django.core.cache import cache
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -42,6 +43,7 @@ class DateParseMixin:
 
 class CandleView(DateParseMixin, ListAPIView):
     serializer_class = CandleSerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Candle.objects.all().order_by('datetime')
@@ -66,6 +68,25 @@ class CandleView(DateParseMixin, ListAPIView):
                 queryset = queryset.filter(datetime__lte=to_dt) 
                 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        symbol = self.request.query_params.get('symbol')
+        timeframe = self.request.query_params.get('timeframe')
+        from_str = self.request.query_params.get('from')
+        to_str = self.request.query_params.get('to')
+
+        cache_key = f'candles:{symbol}:{timeframe}:{from_str}:{to_str}'
+
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            return Response(cached_data)
+
+        serialized_data = super().list(request, *args, **kwargs)
+
+        cache.set(cache_key, serialized_data.data, timeout=240)
+
+        return serialized_data
 
 
 class InstrumentView(ReadOnlyModelViewSet):

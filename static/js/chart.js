@@ -83,7 +83,8 @@ async function updateChart() {
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
         
-        const formattedData = data.results.map(candle => ({
+        const dataArray = Array.isArray(data) ? data : data.results;
+        const formattedData = dataArray.map(candle => ({
             time: Math.floor(new Date(candle.datetime).getTime() / 1000),
             open: parseFloat(candle.open_price),
             high: parseFloat(candle.high_price),
