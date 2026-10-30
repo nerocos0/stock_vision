@@ -101,6 +101,14 @@ class InstrumentView(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
+
+        cache_key = 'instruments_summary'
+
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            return Response(cached_data)
+
         instruments = Instrument.objects.filter(is_active=True)
         if instruments is not None:
             data_list = []
@@ -112,7 +120,10 @@ class InstrumentView(ReadOnlyModelViewSet):
                 data = twelve_data.get_instrument_changes(symbol=api_symbol)
                 data_list.append(data)
 
-        return Response(data=data_list)
+        cache.set(cache_key, data_list, timeout=60)
+
+        return Response(data_list)
+
 
 class IndicatorView(DateParseMixin, APIView):
     def get(self, request):
@@ -123,9 +134,27 @@ class IndicatorView(DateParseMixin, APIView):
         to_str = self.request.query_params.get('to')
         period = int(self.request.query_params.get('period', 14))
 
+        cache_key = f'indicators:{symbol}:{timeframe}:{indicator_type}:{from_str}:{to_str}'
+
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            return Response(cached_data)
+
+        indicators_data = self._get_indicators_data(indicator_type, symbol, timeframe, from_str, to_str, period)
+
+        if isinstance(indicators_data, dict) and 'error' in indicators_data:
+            return Response(indicators_data, status=400)        
+
+        cache.set(cache_key, indicators_data, timeout=240)
+
+        return Response(indicators_data)        
+
+
+    def _get_indicators_data(self, indicator_type, symbol, timeframe, from_str, to_str, period):
         calculate_func = INDICATORS_MAP.get(indicator_type)
         if not calculate_func:
-            return Response({"error": f"Индикатор '{indicator_type}' не поддерживается"}, status=400)
+            return {"error": f"Индикатор '{indicator_type}' не поддерживается"}
 
         to_dt = self._parse_date_param(to_str) or datetime.now(timezone.utc)
         from_dt = self._parse_date_param(from_str)
@@ -173,4 +202,4 @@ class IndicatorView(DateParseMixin, APIView):
                 'value': round(value, 4),
             })
 
-        return Response(result)
+        return result
