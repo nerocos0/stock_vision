@@ -7,14 +7,12 @@ import { initAuthUI } from './auth.js';
 const DEFAULT_SYMBOL = 'EURUSD';
 const DEFAULT_TIMEFRAME = '1h';
 
-// Единое состояние приложения
 const state = {
     symbol: DEFAULT_SYMBOL,
     timeframe: DEFAULT_TIMEFRAME,
-    activeIndicators: new Set(), // Храним включенные индикаторы (rsi, ema, sma)
+    activeIndicators: new Set(),
 };
 
-// Настройки периодов для индикаторов
 const INDICATOR_PERIODS = {
     rsi: 14,
     ema: 20,
@@ -30,7 +28,10 @@ const chart = LightweightCharts.createChart(chartContainer, {
     height: chartContainer.clientHeight,
     layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
     grid: { vertLines: { color: '#2B2B43' }, horzLines: { color: '#2B2B43' } },
-    timeScale: { timeVisible: true, secondsVisible: false },
+    timeScale: { 
+        timeVisible: true, 
+        secondsVisible: false,
+    },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
 });
 
@@ -41,7 +42,6 @@ window.addEventListener('resize', () => {
     });
 });
 
-// Создаем серии (графики)
 const candleSeries = chart.addCandlestickSeries({
     upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
     wickUpColor: '#26a69a', wickDownColor: '#ef5350'
@@ -63,7 +63,7 @@ function getDateRange(timeframe) {
     const toDate = now.toISOString().split('T')[0] + ' 23:59:59';
     const date = new Date();
     
-    let monthsToSubtract = 12; // Дефолт
+    let monthsToSubtract = 12;
     if (timeframe === '5min') monthsToSubtract = 1;
     else if (timeframe === '1h') monthsToSubtract = 12;
     else if (timeframe === '4h') monthsToSubtract = 24;
@@ -94,12 +94,22 @@ async function updateChart() {
 
         candleSeries.setData(formattedData);
         
-        // ВАЖНО: Сначала ждем загрузки всех индикаторов
+        // Ждем загрузки индикаторов
         await updateAllActiveIndicators();
         
-        // И ТОЛЬКО ПОТОМ делаем автомасштаб (fitContent)
-        // Даем браузеру микросекунду отрисовать данные
-        setTimeout(() => chart.timeScale().fitContent(), 10);
+        // Всегда показываем последние 150 свечей при смене ТФ или загрузке
+        const visibleBars = 150;
+        const totalBars = formattedData.length;
+        
+        if (totalBars > visibleBars) {
+            chart.timeScale().setVisibleLogicalRange({
+                from: totalBars - visibleBars,
+                to: totalBars + 100
+            });
+        } else {
+            // Если свечей меньше 150, показываем все
+            chart.timeScale().fitContent();
+        }
         
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
@@ -112,7 +122,7 @@ async function updateIndicator(type) {
     const period = INDICATOR_PERIODS[type];
     
     if (!state.activeIndicators.has(type)) {
-        series.setData([]); // Очищаем, если выключен
+        series.setData([]);
         return;
     }
 
@@ -194,7 +204,6 @@ async function updateFavoriteButton() {
 // 7. ОБРАБОТЧИКИ СОБЫТИЙ
 // ==========================================
 function setupEventListeners() {
-    // Переключение ТФ
     document.querySelectorAll('.tf-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
@@ -205,16 +214,17 @@ function setupEventListeners() {
         });
     });
 
-    // Смена инструмента
     document.getElementById('symbol-select').addEventListener('change', (event) => {
         state.symbol = event.target.value;
         window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
+        
+        // При смене инструмента зум сбрасываем, чтобы увидеть новый
+        chart.timeScale().setVisibleLogicalRange(null); 
         
         updateChart();
         updateFavoriteButton();
     });
 
-    // Открытие/закрытие меню индикаторов
     const dropBtn = document.getElementById('indicator-btn');
     const dropMenu = document.querySelector('.indicator-dropdown');
     
@@ -227,7 +237,6 @@ function setupEventListeners() {
         if (!dropMenu.contains(e.target)) dropMenu.classList.remove('open');
     });
 
-    // Чекбоксы индикаторов
     ['rsi', 'ema', 'sma'].forEach(type => {
         document.getElementById(`chk-${type}`).addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -235,6 +244,7 @@ function setupEventListeners() {
             } else {
                 state.activeIndicators.delete(type);
             }
+            localStorage.setItem('activeIndicators', JSON.stringify([...state.activeIndicators]));
             updateIndicator(type);
         });
     });
@@ -244,7 +254,16 @@ function setupEventListeners() {
 // 8. ТОЧКА ВХОДА
 // ==========================================
 async function init() {
-    // Берем символ из URL, если он там есть
+    const savedIndicators = localStorage.getItem('activeIndicators');
+    if (savedIndicators) {
+        const arr = JSON.parse(savedIndicators);
+        arr.forEach(type => {
+            state.activeIndicators.add(type);
+            const checkbox = document.getElementById(`chk-${type}`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+    
     const urlParams = new URLSearchParams(window.location.search);
     const symbolFromUrl = urlParams.get('symbol');
     if (symbolFromUrl) state.symbol = symbolFromUrl;
