@@ -24,6 +24,12 @@ def validate_candles_for_db(candles, symbol, interval):
             fmt = INTERVAL_DATE_FORMAT[interval]
             dt = datetime.strptime(dt, fmt).replace(tzinfo=timezone.utc)
 
+        is_saturday = (dt.weekday() == 5)
+        is_sunday_before_open = (dt.weekday() == 6 and dt.hour < 22)
+        
+        if is_saturday or is_sunday_before_open:
+            continue
+
         new_instance = Candle(
             instrument=instrument,
             timeframe=interval,

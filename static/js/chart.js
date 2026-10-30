@@ -218,9 +218,6 @@ function setupEventListeners() {
         state.symbol = event.target.value;
         window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
         
-        // При смене инструмента зум сбрасываем, чтобы увидеть новый
-        chart.timeScale().setVisibleLogicalRange(null); 
-        
         updateChart();
         updateFavoriteButton();
     });
