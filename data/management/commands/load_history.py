@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from datetime import datetime, timezone
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+from django.core.cache import cache
 
 from data.services.twelvedata import TwelveDataService
 from data.services.candle_saver import validate_candles_for_db
@@ -44,4 +45,4 @@ class Command(BaseCommand):
                 lower_bound=lower_bound_str,
                 upper_bound=now_str
             ))
-        Candle.objects.bulk_create(all_candles_model_list, ignore_conflicts=True)        
+        Candle.objects.bulk_create(all_candles_model_list, ignore_conflicts=True)

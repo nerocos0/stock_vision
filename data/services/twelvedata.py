@@ -1,6 +1,6 @@
 import requests
 import logging
-from datetime import  datetime, timedelta
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
@@ -27,10 +27,10 @@ class TwelveDataRateLimitError(TwelveDataError):
 
 class TwelveDataService:
 
-    """Нужно понять, что start_date это нижняя граница нужного промежутка времени, соответственно end_date это верхняя граница(то есть свеча, новее start_date),
-    но при этом данные отдаются от новым к старым, то есть от end_date к start_date.
-    Чтобы не запутаться окончательно потом назову start_date и end_date - lower_bound и upper_bound соответственно, то есть нижняя и верхняя граница диапазона 
-    и двигаться будем от верхней границы"""
+    #Нужно понять, что start_date это нижняя граница нужного промежутка времени, соответственно end_date это верхняя граница(то есть свеча, новее start_date),
+    #но при этом данные отдаются от новым к старым, то есть от end_date к start_date.
+    #Чтобы не запутаться окончательно потом назову start_date и end_date - lower_bound и upper_bound соответственно, то есть нижняя и верхняя граница диапазона 
+    #и двигаться будем от верхней границы
 
     BASE_URL = "https://api.twelvedata.com"
 
