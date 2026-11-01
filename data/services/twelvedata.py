@@ -1,9 +1,11 @@
 import requests
+import logging
 from datetime import  datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
 
+logger = logging.getLogger(__name__)
 
 INTERVAL_TO_DELTA = {
     '5min': timedelta(minutes=5),
@@ -50,7 +52,7 @@ class TwelveDataService:
         response.raise_for_status()
         data = response.json()
         if data.get('status') != 'error' and 'values' in data:
-            print(f'Загружаю свечи с {start_date} по {end_date},первая свеча {data['values'][0]['datetime']}, последняя свеча {data['values'][-1]['datetime']}')
+            logger.info(f'Загружаю свечи с {start_date} по {end_date},первая свеча {data['values'][0]['datetime']}, последняя свеча {data['values'][-1]['datetime']}')
             return data['values']
         else:
             message = data.get('message', 'Unknown error')

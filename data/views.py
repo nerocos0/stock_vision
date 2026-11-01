@@ -1,4 +1,5 @@
 import math
+import logging
 from django.core.cache import cache
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.views import APIView
@@ -22,6 +23,9 @@ INDICATORS_MAP = {
     'ema': calculate_ema,
     'sma': calculate_sma
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 class DateParseMixin:
@@ -79,7 +83,7 @@ class CandleView(DateParseMixin, ListAPIView):
 
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            logger.debug(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
             return Response(cached_data)
 
         serialized_data = super().list(request, *args, **kwargs)
@@ -106,7 +110,7 @@ class InstrumentView(ReadOnlyModelViewSet):
 
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            logger.debug(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
             return Response(cached_data)
 
         instruments = Instrument.objects.filter(is_active=True)
@@ -138,7 +142,7 @@ class IndicatorView(DateParseMixin, APIView):
 
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            print(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
+            logger.debug(f"ВЗЯЛИ ИЗ КЭША: {cache_key}")
             return Response(cached_data)
 
         indicators_data = self._get_indicators_data(indicator_type, symbol, timeframe, from_str, to_str, period)
