@@ -3,6 +3,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from .serializers import RegisterSerializer, FavoriteInstrumentSerializer
 from .models import FavoriteInstrument
@@ -26,7 +27,6 @@ class FavoriteViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         instrument_code = request.data.get('instrument')
-        
         instrument = Instrument.objects.filter(code=instrument_code).first()
         
         if not instrument:
@@ -37,3 +37,13 @@ class FavoriteViewSet(ModelViewSet):
             return Response({"detail": "Уже в избранном"}, status=status.HTTP_200_OK)
         
         return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'])
+    def reorder(self, request):
+        items = request.data.get('items', [])
+        for item in items:
+            FavoriteInstrument.objects.filter(
+                id=item['id'], 
+                user=request.user
+            ).update(order=item['order'])
+        return Response({'status': 'ok'})

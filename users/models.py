@@ -5,10 +5,11 @@ from django.conf import settings
 class FavoriteInstrument(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorite_instruments')
     instrument = models.ForeignKey('data.Instrument', on_delete=models.CASCADE, related_name='favorited_by')
+    order = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('user', 'instrument')
-        ordering = ['-id']
+        ordering = ['order', 'id']
 
     def __str__(self):
         return f"{self.user.username} - {self.instrument.code}"

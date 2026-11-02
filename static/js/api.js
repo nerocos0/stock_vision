@@ -87,3 +87,17 @@ export async function fetchIndicator(symbol, timeframe, type, period, fromDate, 
     if (!response.ok) throw new Error('Ошибка загрузки индикатора');
     return await response.json();
 }
+
+export async function reorderFavorites(items) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE}/auth/favorites/reorder/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items })
+    });
+    if (!response.ok) throw new Error('Ошибка сохранения порядка');
+    return await response.json();
+}

@@ -1,4 +1,4 @@
-import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites } from './api.js';
+import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites, fetchSummary, reorderFavorites } from './api.js';
 import { initAuthUI } from './auth.js';
 
 // ==========================================
@@ -19,7 +19,6 @@ const INDICATOR_PERIODS = {
     sma: 50
 };
 
-// Глобальная переменная для сдвига часового пояса
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
 
 // ==========================================
@@ -45,30 +44,30 @@ const chart = LightweightCharts.createChart(chartContainer, {
     localization: {
         timeFormatter: (time) => {
             const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-            
             const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
             const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-            
             const dayOfWeek = days[date.getUTCDay()];
             const day = String(date.getUTCDate()).padStart(2, '0');
             const month = months[date.getUTCMonth()];
             const year = String(date.getUTCFullYear()).slice(-2);
-            
             const hours = String(date.getUTCHours()).padStart(2, '0');
             const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-            
             return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
         }
     },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
 });
 
-window.addEventListener('resize', () => {
-    chart.applyOptions({ 
-        width: chartContainer.clientWidth, 
-        height: chartContainer.clientHeight 
-    });
+// Отслеживаем изменение размеров контейнера графика (вместо window.resize)
+const resizeObserver = new ResizeObserver(entries => {
+    for (let entry of entries) {
+        chart.applyOptions({ 
+            width: entry.contentRect.width, 
+            height: entry.contentRect.height 
+        });
+    }
 });
+resizeObserver.observe(chartContainer);
 
 const candleSeries = chart.addCandlestickSeries({
     upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
@@ -90,16 +89,13 @@ function getDateRange(timeframe) {
     const now = new Date();
     const toDate = now.toISOString().split('T')[0] + ' 23:59:59';
     const date = new Date();
-    
     let monthsToSubtract = 12;
     if (timeframe === '5min') monthsToSubtract = 1;
     else if (timeframe === '1h') monthsToSubtract = 12;
     else if (timeframe === '4h') monthsToSubtract = 24;
     else monthsToSubtract = 60;
-
     date.setMonth(date.getMonth() - monthsToSubtract);
     const fromDate = date.toISOString().split('T')[0];
-    
     return { fromDate, toDate };
 }
 
@@ -110,7 +106,6 @@ async function updateChart() {
     try {
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
-        
         const dataArray = Array.isArray(data) ? data : data.results;
         const formattedData = dataArray.map(candle => ({
             time: Math.floor(new Date(candle.datetime).getTime() / 1000),
@@ -123,45 +118,24 @@ async function updateChart() {
         // Динамическая точность цен
         if (formattedData.length > 0) {
             const lastPrice = formattedData[formattedData.length - 1].close;
-            let precision = 2;
-            let minMove = 0.01;
-
-            if (lastPrice < 10) {
-                precision = 5;
-                minMove = 0.00001;
-            } else if (lastPrice < 100) {
-                precision = 4;
-                minMove = 0.0001;
-            } else if (lastPrice < 1000) {
-                precision = 3;
-                minMove = 0.001;
-            } else {
-                precision = 2;
-                minMove = 0.01;
-            }
-
+            let precision = 2; let minMove = 0.01;
+            if (lastPrice < 10) { precision = 5; minMove = 0.00001; }
+            else if (lastPrice < 100) { precision = 4; minMove = 0.0001; }
+            else if (lastPrice < 1000) { precision = 3; minMove = 0.001; }
+            else { precision = 2; minMove = 0.01; }
             candleSeries.applyOptions({
-                priceFormat: {
-                    type: 'price',
-                    precision: precision,
-                    minMove: minMove
-                }
+                priceFormat: { type: 'price', precision: precision, minMove: minMove }
             });
         }
 
         candleSeries.setData(formattedData);
-        
         await updateAllActiveIndicators();
         
         // Показываем последние 150 свечей
         const visibleBars = 150;
         const totalBars = formattedData.length;
-        
         if (totalBars > visibleBars) {
-            chart.timeScale().setVisibleLogicalRange({
-                from: totalBars - visibleBars,
-                to: totalBars + 100
-            });
+            chart.timeScale().setVisibleLogicalRange({ from: totalBars - visibleBars, to: totalBars + 100 });
         } else {
             chart.timeScale().fitContent();
         }
@@ -175,13 +149,11 @@ async function fetchLatestCandle() {
     try {
         const { toDate } = getDateRange(state.timeframe);
         const fromDate = toDate.split(' ')[0];
-        
         const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
         const dataArray = Array.isArray(data) ? data : data.results;
         
         if (dataArray && dataArray.length > 0) {
             const lastCandle = dataArray[dataArray.length - 1];
-            
             const formattedCandle = {
                 time: Math.floor(new Date(lastCandle.datetime).getTime() / 1000),
                 open: parseFloat(lastCandle.open_price),
@@ -189,9 +161,7 @@ async function fetchLatestCandle() {
                 low: parseFloat(lastCandle.low_price),
                 close: parseFloat(lastCandle.close_price),
             };
-            
             candleSeries.update(formattedCandle);
-            console.log("Обновлена последняя свеча:", formattedCandle);
         }
     } catch (error) {
         console.error("Ошибка автообновления:", error);
@@ -207,7 +177,6 @@ async function updateIndicator(type) {
         series.setData([]);
         return;
     }
-
     try {
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const data = await fetchIndicator(state.symbol, state.timeframe, type, period, fromDate, toDate);
@@ -231,7 +200,6 @@ async function initInstruments() {
         const data = await fetchInstruments();
         const select = document.getElementById('symbol-select');
         select.innerHTML = ''; 
-        
         data.results.forEach(inst => {
             const option = document.createElement('option');
             option.value = inst.code;
@@ -250,24 +218,18 @@ async function initInstruments() {
 async function updateFavoriteButton() {
     const favBtn = document.getElementById('fav-btn');
     const token = localStorage.getItem('access_token');
-
-    if (!token) {
-        favBtn.style.display = 'none';
-        return;
-    }
-
+    if (!token) { favBtn.style.display = 'none'; return; }
     favBtn.style.display = 'block';
-
     try {
         const favoritesData = await fetchFavorites();
         const favorite = favoritesData.results.find(fav => fav.instrument_code === state.symbol);
-
         if (favorite) {
             favBtn.textContent = '⭐ В избранном';
             favBtn.classList.add('active');
             favBtn.onclick = async () => {
                 await removeFavorite(favorite.id);
                 await updateFavoriteButton();
+                await updateWatchlist();
             };
         } else {
             favBtn.textContent = '⭐ В избранное';
@@ -275,6 +237,7 @@ async function updateFavoriteButton() {
             favBtn.onclick = async () => {
                 await addFavorite(state.symbol);
                 await updateFavoriteButton();
+                await updateWatchlist();
             };
         }
     } catch (error) {
@@ -283,14 +246,158 @@ async function updateFavoriteButton() {
 }
 
 // ==========================================
-// 7. ОБРАБОТЧИКИ СОБЫТИЙ
+// 7. WATCHLIST (СПИСОК ИЗБРАННОГО)
+// ==========================================
+async function updateWatchlist() {
+    const container = document.getElementById('watchlist-items');
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+        container.innerHTML = '<p style="color: #787b86; font-size: 14px; padding: 10px;">Войдите, чтобы видеть избранное</p>';
+        return;
+    }
+
+    try {
+        const data = await fetchFavorites();
+        container.innerHTML = ''; 
+
+        if (data.results.length === 0) {
+            container.innerHTML = '<p style="color: #787b86; font-size: 14px; padding: 10px;">Список пуст</p>';
+            return;
+        }
+
+        const summaryData = await fetchSummary();
+        const summaryMap = {};
+        if (Array.isArray(summaryData)) {
+            summaryData.forEach(item => { summaryMap[item.code] = item; });
+        }
+
+        data.results.forEach(fav => {
+            const btn = document.createElement('div');
+            btn.className = 'watchlist-item';
+            btn.draggable = true;
+            btn.dataset.id = fav.id;
+            if (fav.instrument_code === state.symbol) btn.classList.add('active');
+
+            const info = summaryMap[fav.instrument_code] || {};
+            const price = info.close ? parseFloat(info.close).toFixed(4) : '...';
+            const change = info.percent_change ? parseFloat(info.percent_change).toFixed(2) : '0.00';
+            const isUp = change >= 0;
+
+            btn.innerHTML = `
+                <div class="wl-left">
+                    <div class="wl-symbol">${fav.instrument_code}</div>
+                    <div class="wl-price">${price}</div>
+                    <div class="wl-change ${isUp ? 'up' : 'down'}">${isUp ? '+' : ''}${change}%</div>
+                </div>
+                <button class="wl-delete" data-id="${fav.id}">✕</button>
+            `;
+
+            // Клик по элементу (переключение графика)
+            btn.onclick = (e) => {
+                if (e.target.closest('.wl-delete')) return;
+                state.symbol = fav.instrument_code;
+                window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
+                document.getElementById('symbol-select').value = state.symbol;
+                updateChart();
+                updateFavoriteButton();
+                updateWatchlist();
+            };
+
+            // Удаление
+            const deleteBtn = btn.querySelector('.wl-delete');
+            deleteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                await removeFavorite(fav.id);
+                await updateWatchlist();
+                await updateFavoriteButton();
+            };
+
+            // Drag-and-drop
+            btn.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', fav.id);
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => btn.classList.add('dragging'), 0);
+            });
+
+            btn.addEventListener('dragend', () => { btn.classList.remove('dragging'); });
+            btn.addEventListener('dragover', (e) => { e.preventDefault(); btn.classList.add('drag-over'); });
+            btn.addEventListener('dragleave', () => { btn.classList.remove('drag-over'); });
+
+            btn.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                btn.classList.remove('drag-over');
+                const draggedId = e.dataTransfer.getData('text/plain');
+                if (draggedId === fav.id) return;
+
+                const items = Array.from(container.children);
+                const draggedIndex = items.findIndex(item => item.dataset.id === draggedId);
+                const targetIndex = items.findIndex(item => item.dataset.id === fav.id);
+
+                if (draggedIndex < targetIndex) {
+                    container.insertBefore(container.children[draggedIndex], btn.nextSibling);
+                } else {
+                    container.insertBefore(container.children[draggedIndex], btn);
+                }
+
+                const newOrder = Array.from(container.children).map((item, index) => ({
+                    id: parseInt(item.dataset.id),
+                    order: index
+                }));
+                
+                try {
+                    await reorderFavorites(newOrder);
+                } catch (error) {
+                    console.error("Ошибка сохранения порядка:", error);
+                }
+            });
+
+            container.appendChild(btn);
+        });
+    } catch (error) {
+        console.error("Ошибка при загрузке Watchlist:", error);
+        container.innerHTML = '<p style="color: #ef5350; font-size: 14px; padding: 10px;">Ошибка загрузки</p>';
+    }
+}
+
+// Изменение ширины панели
+function setupResizer() {
+    const resizer = document.getElementById('dragMe');
+    const sidebar = document.getElementById('watchlist-sidebar');
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', () => {
+        isResizing = true;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none'; 
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const newWidth = document.body.clientWidth - e.clientX;
+        if (newWidth > 150 && newWidth < 500) {
+            sidebar.style.width = `${newWidth}px`;
+            localStorage.setItem('sidebarWidth', newWidth);
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+// ==========================================
+// 8. ОБРАБОТЧИКИ СОБЫТИЙ
 // ==========================================
 function setupEventListeners() {
     document.querySelectorAll('.tf-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-
             state.timeframe = event.target.dataset.tf;
             updateChart();
         });
@@ -312,32 +419,27 @@ function setupEventListeners() {
             localization: {
                 timeFormatter: (time) => {
                     const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-                    
                     const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
                     const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-                    
                     const dayOfWeek = days[date.getUTCDay()];
                     const day = String(date.getUTCDate()).padStart(2, '0');
                     const month = months[date.getUTCMonth()];
                     const year = String(date.getUTCFullYear()).slice(-2);
-                    
                     const hours = String(date.getUTCHours()).padStart(2, '0');
                     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-                    
                     return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
                 }
             }
         });
-        
         chart.applyOptions({});
     });
 
     document.getElementById('symbol-select').addEventListener('change', (event) => {
         state.symbol = event.target.value;
         window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
-        
         updateChart();
         updateFavoriteButton();
+        updateWatchlist();
     });
 
     const dropBtn = document.getElementById('indicator-btn');
@@ -354,11 +456,8 @@ function setupEventListeners() {
 
     ['rsi', 'ema', 'sma'].forEach(type => {
         document.getElementById(`chk-${type}`).addEventListener('change', (e) => {
-            if (e.target.checked) {
-                state.activeIndicators.add(type);
-            } else {
-                state.activeIndicators.delete(type);
-            }
+            if (e.target.checked) state.activeIndicators.add(type);
+            else state.activeIndicators.delete(type);
             localStorage.setItem('activeIndicators', JSON.stringify([...state.activeIndicators]));
             updateIndicator(type);
         });
@@ -366,7 +465,7 @@ function setupEventListeners() {
 }
 
 // ==========================================
-// 8. ТОЧКА ВХОДА
+// 9. ТОЧКА ВХОДА
 // ==========================================
 async function init() {
     const savedIndicators = localStorage.getItem('activeIndicators');
@@ -389,15 +488,19 @@ async function init() {
         document.getElementById('timezone-select').value = savedOffset;
     }
 
+    const savedWidth = localStorage.getItem('sidebarWidth');
+    if (savedWidth) document.getElementById('watchlist-sidebar').style.width = `${savedWidth}px`;
+
     await initInstruments();
     setupEventListeners();
     await updateChart();
     await updateFavoriteButton();
+    await updateWatchlist();
+    setupResizer();
     
     setInterval(() => {
-        console.log("Таймер: проверяем новые свечи...");
         fetchLatestCandle();
-    }, 300000);
+    }, 30000);
 }
 
 init();

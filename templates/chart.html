@@ -14,7 +14,7 @@
         
         <div class="controls">
             <button id="fav-btn" class="auth-btn fav" style="display: none;">
-                ⭐ В избранное
+                В избранное
             </button>
 
             <select id="symbol-select">
@@ -32,7 +32,7 @@
                 <button class="tf-btn active" data-tf="1h">1h</button>
                 <button class="tf-btn" data-tf="4h">4h</button>
                 <button class="tf-btn" data-tf="1day">1D</button>
-                <button class="tf-btn" data-tf="1week">1W</button> <!-- Исправил 1H на 1W -->
+                <button class="tf-btn" data-tf="1week">1W</button>
                 <button class="tf-btn" data-tf="1month">1M</button>
             </div>
 
@@ -49,7 +49,18 @@
         <div id="auth-buttons"></div>
     </header>
 
-    <div id="chart-container"></div>
+    <div class="chart-layout">
+        <div id="chart-container"></div>
+
+        <div class="resizer" id="dragMe"></div>
+
+        <aside class="sidebar" id="watchlist-sidebar">
+            <h3 class="sidebar-title">Избранное</h3>
+            <div id="watchlist-items">
+            </div>
+        </aside>
+    </div>
+
     <script type="module" src="{% static 'js/chart.js' %}"></script>
 </body>
 </html>

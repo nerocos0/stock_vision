@@ -73,9 +73,142 @@ header {
 .tf-btn:hover { background: #2B2B43; color: white; }
 .tf-btn.active { background: #2962FF; color: white; }
 
-#chart-container {
-    width: 100vw;
+/* =========================================
+   РАСКЛАДКА С ГРАФИКОМ И WATCHLIST
+   ========================================= */
+.chart-layout {
+    display: flex;
     height: calc(100vh - 60px);
+    width: 100%;
+    overflow: hidden;
+    position: relative; /* Важно для правильного пересчета */
+}
+
+#chart-container {
+    flex-grow: 1;
+    height: 100%;
+    width: 0;        /* Заставляем flexbox правильно делить пространство */
+    min-width: 0;    /* Без этого flexbox может вытолкнуть сайдбар */
+    position: relative;
+}
+
+/* Полоса-разделитель */
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #2B2B43;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover {
+    background-color: #2962FF;
+}
+
+/* Сайдбар справа */
+.sidebar {
+    width: 250px;
+    min-width: 150px;
+    max-width: 500px;
+    background-color: #1e222d;
+    border-left: 1px solid #2B2B43;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.sidebar-title {
+    color: #d1d4dc;
+    font-size: 16px;
+    padding: 15px;
+    margin: 0;
+    border-bottom: 1px solid #2B2B43;
+}
+
+#watchlist-items {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 5px;
+}
+
+/* Стили для расширенного Watchlist */
+.watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e222d;
+    color: #d1d4dc;
+    border: 1px solid transparent; /* Для ховера */
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+    position: relative;
+    user-select: none; /* Запрещаем выделять текст при перетаскивании */
+}
+
+.watchlist-item:hover {
+    background-color: #2B2B43;
+    color: white;
+    border-color: #2B2B43;
+}
+
+.watchlist-item.active {
+    background-color: #2962FF;
+    color: white;
+}
+
+.watchlist-item.dragging {
+    opacity: 0.5;
+    background-color: #2962FF;
+}
+
+.watchlist-item.drag-over {
+    border-top: 2px solid #2962FF; /* Индикатор места вставки */
+}
+
+.wl-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    pointer-events: none; /* Чтобы клик срабатывал по самой кнопке */
+}
+
+.wl-symbol {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.wl-price {
+    font-size: 12px;
+    color: #787b86;
+}
+
+.wl-change {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.wl-change.up { color: #26a69a; }
+.wl-change.down { color: #ef5350; }
+
+.wl-delete {
+    background: transparent;
+    border: none;
+    color: #787b86;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+    pointer-events: auto; /* Возвращаем клики */
+}
+
+.wl-delete:hover {
+    color: #ef5350;
 }
 
 /* Выпадающее меню индикаторов */
