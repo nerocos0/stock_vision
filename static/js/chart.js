@@ -19,6 +19,9 @@ const INDICATOR_PERIODS = {
     sma: 50
 };
 
+// Глобальная переменная для сдвига часового пояса
+let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
+
 // ==========================================
 // 2. ИНИЦИАЛИЗАЦИЯ ГРАФИКА
 // ==========================================
@@ -29,8 +32,33 @@ const chart = LightweightCharts.createChart(chartContainer, {
     layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
     grid: { vertLines: { color: '#2B2B43' }, horzLines: { color: '#2B2B43' } },
     timeScale: { 
-        timeVisible: true, 
+        timeVisible: true,
         secondsVisible: false,
+        rightOffset: 100,
+        tickMarkFormatter: (time) => {
+            const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+            const hours = String(date.getUTCHours()).padStart(2, '0');
+            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+    },
+    localization: {
+        timeFormatter: (time) => {
+            const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+            
+            const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+            const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+            
+            const dayOfWeek = days[date.getUTCDay()];
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const month = months[date.getUTCMonth()];
+            const year = String(date.getUTCFullYear()).slice(-2);
+            
+            const hours = String(date.getUTCHours()).padStart(2, '0');
+            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+            
+            return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
+        }
     },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
 });
@@ -92,12 +120,40 @@ async function updateChart() {
             close: parseFloat(candle.close_price),
         }));
 
+        // Динамическая точность цен
+        if (formattedData.length > 0) {
+            const lastPrice = formattedData[formattedData.length - 1].close;
+            let precision = 2;
+            let minMove = 0.01;
+
+            if (lastPrice < 10) {
+                precision = 5;
+                minMove = 0.00001;
+            } else if (lastPrice < 100) {
+                precision = 4;
+                minMove = 0.0001;
+            } else if (lastPrice < 1000) {
+                precision = 3;
+                minMove = 0.001;
+            } else {
+                precision = 2;
+                minMove = 0.01;
+            }
+
+            candleSeries.applyOptions({
+                priceFormat: {
+                    type: 'price',
+                    precision: precision,
+                    minMove: minMove
+                }
+            });
+        }
+
         candleSeries.setData(formattedData);
         
-        // Ждем загрузки индикаторов
         await updateAllActiveIndicators();
         
-        // Всегда показываем последние 150 свечей при смене ТФ или загрузке
+        // Показываем последние 150 свечей
         const visibleBars = 150;
         const totalBars = formattedData.length;
         
@@ -107,12 +163,38 @@ async function updateChart() {
                 to: totalBars + 100
             });
         } else {
-            // Если свечей меньше 150, показываем все
             chart.timeScale().fitContent();
         }
         
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
+    }
+}
+
+async function fetchLatestCandle() {
+    try {
+        const { toDate } = getDateRange(state.timeframe);
+        const fromDate = toDate.split(' ')[0];
+        
+        const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
+        const dataArray = Array.isArray(data) ? data : data.results;
+        
+        if (dataArray && dataArray.length > 0) {
+            const lastCandle = dataArray[dataArray.length - 1];
+            
+            const formattedCandle = {
+                time: Math.floor(new Date(lastCandle.datetime).getTime() / 1000),
+                open: parseFloat(lastCandle.open_price),
+                high: parseFloat(lastCandle.high_price),
+                low: parseFloat(lastCandle.low_price),
+                close: parseFloat(lastCandle.close_price),
+            };
+            
+            candleSeries.update(formattedCandle);
+            console.log("Обновлена последняя свеча:", formattedCandle);
+        }
+    } catch (error) {
+        console.error("Ошибка автообновления:", error);
     }
 }
 
@@ -214,6 +296,42 @@ function setupEventListeners() {
         });
     });
 
+    document.getElementById('timezone-select').addEventListener('change', (event) => {
+        currentTimezoneOffset = parseInt(event.target.value);
+        localStorage.setItem('timezoneOffset', event.target.value);
+        
+        chart.applyOptions({
+            timeScale: {
+                tickMarkFormatter: (time) => {
+                    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+                    const hours = String(date.getUTCHours()).padStart(2, '0');
+                    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                    return `${hours}:${minutes}`;
+                }
+            },
+            localization: {
+                timeFormatter: (time) => {
+                    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+                    
+                    const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+                    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+                    
+                    const dayOfWeek = days[date.getUTCDay()];
+                    const day = String(date.getUTCDate()).padStart(2, '0');
+                    const month = months[date.getUTCMonth()];
+                    const year = String(date.getUTCFullYear()).slice(-2);
+                    
+                    const hours = String(date.getUTCHours()).padStart(2, '0');
+                    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                    
+                    return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
+                }
+            }
+        });
+        
+        chart.applyOptions({});
+    });
+
     document.getElementById('symbol-select').addEventListener('change', (event) => {
         state.symbol = event.target.value;
         window.history.pushState({}, '', `${window.location.pathname}?symbol=${state.symbol}`);
@@ -264,11 +382,22 @@ async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const symbolFromUrl = urlParams.get('symbol');
     if (symbolFromUrl) state.symbol = symbolFromUrl;
+    
+    const savedOffset = localStorage.getItem('timezoneOffset');
+    if (savedOffset) {
+        currentTimezoneOffset = parseInt(savedOffset);
+        document.getElementById('timezone-select').value = savedOffset;
+    }
 
     await initInstruments();
     setupEventListeners();
     await updateChart();
     await updateFavoriteButton();
+    
+    setInterval(() => {
+        console.log("Таймер: проверяем новые свечи...");
+        fetchLatestCandle();
+    }, 300000);
 }
 
 init();
