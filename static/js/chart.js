@@ -129,16 +129,26 @@ async function updateChart() {
         }
 
         candleSeries.setData(formattedData);
+
+        candleSeries.priceScale().applyOptions({
+            autoScale: true,
+        });
+
         await updateAllActiveIndicators();
-        
-        // Показываем последние 150 свечей
-        const visibleBars = 150;
-        const totalBars = formattedData.length;
-        if (totalBars > visibleBars) {
-            chart.timeScale().setVisibleLogicalRange({ from: totalBars - visibleBars, to: totalBars + 100 });
-        } else {
-            chart.timeScale().fitContent();
-        }
+
+        requestAnimationFrame(() => {
+            const visibleBars = 150;
+            const totalBars = formattedData.length;
+
+            if (totalBars > visibleBars) {
+                chart.timeScale().setVisibleLogicalRange({
+                    from: totalBars - visibleBars,
+                    to: totalBars + 100
+                });
+            } else {
+                chart.timeScale().fitContent();
+            }
+        });
         
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
