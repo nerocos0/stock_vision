@@ -32,7 +32,10 @@ function renderLoginButton(container) {
 }
 
 function renderLogoutButton(container) {
-    container.innerHTML = `<button id="logout-btn" class="auth-btn logout">Выйти</button>`;
+    container.innerHTML = `
+        <a href="/profile/" class="auth-btn" style="margin-right: 10px;">Профиль</a>
+        <button id="logout-btn" class="auth-btn logout">Выйти</button>
+    `;
     document.getElementById('logout-btn').addEventListener('click', () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');

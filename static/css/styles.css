@@ -596,6 +596,40 @@ header {
         transform: translateY(20px);
     }
 }
+/* =========================================
+   СТРАНИЦА ПРОФИЛЯ
+   ========================================= */
+.profile-card {
+    background: #1e222d;
+    border: 1px solid #2B2B43;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 600px;
+    margin: 40px auto;
+}
+
+.profile-card h2 {
+    color: white;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.profile-info {
+    color: #d1d4dc;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.profile-info strong {
+    color: white;
+}
+
+.profile-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
 
 /* =========================================
    АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)

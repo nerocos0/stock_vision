@@ -44,3 +44,26 @@ class FavoriteInstrumentSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'instrument': {'write_only': True}
         }
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    oldpassword = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True)
+    new_password2 = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
+        user = self.context['request'].user
+
+        if not user.check_password(data['oldpassword']):
+            raise serializers.ValidationError({'oldpassword': 'Неверный действующий пароль'})
+
+        if data['new_password'] != data['new_password2']:
+            raise serializers.ValidationError({'new_password': 'Новые пароли не совпадают'})
+
+        return data
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user

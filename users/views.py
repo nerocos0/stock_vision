@@ -1,17 +1,31 @@
 from rest_framework import generics
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema
 
-from .serializers import RegisterSerializer, FavoriteInstrumentSerializer
+from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer
 from .models import FavoriteInstrument
 from data.models import Instrument
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        
+        return Response({
+            "username": user.username,
+            "email": user.email,
+        })
 
 
 class FavoriteViewSet(ModelViewSet):
@@ -47,3 +61,20 @@ class FavoriteViewSet(ModelViewSet):
                 user=request.user
             ).update(order=item['order'])
         return Response({'status': 'ok'})
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={200: None, 400: None}
+    )
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Пароль успешно изменен"}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
