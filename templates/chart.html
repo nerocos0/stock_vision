@@ -39,9 +39,24 @@
             <div class="indicator-dropdown">
                 <button id="indicator-btn" class="auth-btn">Индикаторы ▾</button>
                 <div id="indicator-menu" class="dropdown-menu">
-                    <label><input type="checkbox" id="chk-rsi" value="rsi"> RSI (14)</label>
-                    <label><input type="checkbox" id="chk-ema" value="ema"> EMA (20)</label>
-                    <label><input type="checkbox" id="chk-sma" value="sma"> SMA (50)</label>
+                    <div class="indicator-item">
+                        <label>
+                            <input type="checkbox" id="chk-rsi" value="rsi"> RSI
+                        </label>
+                        <input type="number" id="period-rsi" class="period-input" value="14" min="2" max="200">
+                    </div>
+                    <div class="indicator-item">
+                        <label>
+                            <input type="checkbox" id="chk-ema" value="ema"> EMA
+                        </label>
+                        <input type="number" id="period-ema" class="period-input" value="20" min="2" max="200">
+                    </div>
+                    <div class="indicator-item">
+                        <label>
+                            <input type="checkbox" id="chk-sma" value="sma"> SMA
+                        </label>
+                        <input type="number" id="period-sma" class="period-input" value="50" min="2" max="200">
+                    </div>
                 </div>
             </div>
         </div>

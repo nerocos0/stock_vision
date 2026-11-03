@@ -138,7 +138,7 @@ class IndicatorView(DateParseMixin, APIView):
         to_str = self.request.query_params.get('to')
         period = int(self.request.query_params.get('period', 14))
 
-        cache_key = f'indicators:{symbol}:{timeframe}:{indicator_type}:{from_str}:{to_str}'
+        cache_key = f'indicators:{symbol}:{timeframe}:{indicator_type}:{period}:{from_str}:{to_str}'
 
         cached_data = cache.get(cache_key)
         if cached_data is not None:

@@ -10,13 +10,11 @@ const DEFAULT_TIMEFRAME = '1h';
 const state = {
     symbol: DEFAULT_SYMBOL,
     timeframe: DEFAULT_TIMEFRAME,
-    activeIndicators: new Set(),
-};
-
-const INDICATOR_PERIODS = {
-    rsi: 14,
-    ema: 20,
-    sma: 50
+    indicators: {
+        rsi: { enabled: false, period: 14 },
+        ema: { enabled: false, period: 20 },
+        sma: { enabled: false, period: 50 }
+    }
 };
 
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
@@ -181,15 +179,16 @@ async function fetchLatestCandle() {
 async function updateIndicator(type) {
     const seriesMap = { rsi: rsiSeries, ema: emaSeries, sma: smaSeries };
     const series = seriesMap[type];
-    const period = INDICATOR_PERIODS[type];
-    
-    if (!state.activeIndicators.has(type)) {
+    const config = state.indicators[type];
+
+    if (!config.enabled) {
         series.setData([]);
         return;
     }
+
     try {
         const { fromDate, toDate } = getDateRange(state.timeframe);
-        const data = await fetchIndicator(state.symbol, state.timeframe, type, period, fromDate, toDate);
+        const data = await fetchIndicator(state.symbol, state.timeframe, type, config.period, fromDate, toDate);
         series.setData(data);
     } catch (error) {
         console.error(`Ошибка загрузки ${type}:`, error);
@@ -465,27 +464,57 @@ function setupEventListeners() {
     });
 
     ['rsi', 'ema', 'sma'].forEach(type => {
-        document.getElementById(`chk-${type}`).addEventListener('change', (e) => {
-            if (e.target.checked) state.activeIndicators.add(type);
-            else state.activeIndicators.delete(type);
-            localStorage.setItem('activeIndicators', JSON.stringify([...state.activeIndicators]));
+        const checkbox = document.getElementById(`chk-${type}`);
+        const periodInput = document.getElementById(`period-${type}`);
+
+        checkbox.addEventListener('change', (e) => {
+            state.indicators[type].enabled = e.target.checked;
+            saveIndicatorSettings();
             updateIndicator(type);
         });
+
+        periodInput.addEventListener('change', (e) => {
+            let val = parseInt(e.target.value);
+            if (isNaN(val) || val < 2) val = 2;
+            if (val > 200) val = 200;
+            e.target.value = val;
+            
+            state.indicators[type].period = val;
+            saveIndicatorSettings();
+            
+            if (state.indicators[type].enabled) {
+                updateIndicator(type);
+            }
+        });
     });
+}
+
+function saveIndicatorSettings() {
+    localStorage.setItem('indicatorSettings', JSON.stringify(state.indicators));
 }
 
 // ==========================================
 // 9. ТОЧКА ВХОДА
 // ==========================================
 async function init() {
-    const savedIndicators = localStorage.getItem('activeIndicators');
+    const savedIndicators = localStorage.getItem('indicatorSettings');
     if (savedIndicators) {
-        const arr = JSON.parse(savedIndicators);
-        arr.forEach(type => {
-            state.activeIndicators.add(type);
-            const checkbox = document.getElementById(`chk-${type}`);
-            if (checkbox) checkbox.checked = true;
-        });
+        try {
+            const parsed = JSON.parse(savedIndicators);
+            for (const type in parsed) {
+                if (state.indicators[type]) {
+                    state.indicators[type].enabled = parsed[type].enabled;
+                    state.indicators[type].period = parsed[type].period;
+
+                    const checkbox = document.getElementById(`chk-${type}`);
+                    const periodInput = document.getElementById(`period-${type}`);
+                    if (checkbox) checkbox.checked = parsed[type].enabled;
+                    if (periodInput) periodInput.value = parsed[type].period;
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка парсинга настроек индикаторов", e);
+        }
     }
     
     const urlParams = new URLSearchParams(window.location.search);

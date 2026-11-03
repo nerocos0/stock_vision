@@ -454,6 +454,29 @@ header {
     background: #F9A825;
     color: black;
 }
+/* Стили для полей ввода периода индикаторов */
+.indicator-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.period-input {
+    width: 50px;
+    background: #131722;
+    color: #d1d4dc;
+    border: 1px solid #2B2B43;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 13px;
+    outline: none;
+}
+
+.period-input:focus {
+    border-color: #2962FF;
+}
 
 /* =========================================
    АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)
