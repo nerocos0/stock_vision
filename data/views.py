@@ -1,11 +1,12 @@
+import csv
 import math
 import logging
 from django.core.cache import cache
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from datetime import datetime, timezone
@@ -45,7 +46,7 @@ class DateParseMixin:
         return None   
 
 
-class CandleView(DateParseMixin, ListAPIView):
+class CandleView(DateParseMixin, ReadOnlyModelViewSet):
     serializer_class = CandleSerializer
     pagination_class = None
 
@@ -91,6 +92,31 @@ class CandleView(DateParseMixin, ListAPIView):
         cache.set(cache_key, serialized_data.data, timeout=240)
 
         return serialized_data
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({"error": "Нет данных для экспорта"}, status=404)
+        
+        candle_example = queryset.first()
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{candle_example.instrument.code}_{candle_example.timeframe}.csv"'
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Date', 'Open', 'High', 'Low', 'Close'])
+
+        for candle in queryset:
+            writer.writerow([
+                candle.datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                candle.open_price,
+                candle.high_price,
+                candle.low_price,
+                candle.close_price,
+            ])
+
+        return response
 
 
 class InstrumentView(ReadOnlyModelViewSet):

@@ -13,6 +13,9 @@
         <a href="/" class="logo">StockVision</a>
         
         <div class="controls">
+            <button id="export-btn" class="auth-btn" style="margin-right: 10px;">
+                CSV
+            </button>
             <button id="fav-btn" class="auth-btn fav" style="display: none;">
                 В избранное
             </button>
@@ -67,6 +70,13 @@
     <div class="chart-layout">
         <div id="chart-container"></div>
 
+        <div id="loader" class="loader-overlay">
+            <div class="spinner-container">
+                <div class="ring"></div>
+                <div class="ring"></div>
+            </div>
+        </div>
+
         <div class="resizer" id="dragMe"></div>
 
         <aside class="sidebar" id="watchlist-sidebar">
@@ -75,6 +85,8 @@
             </div>
         </aside>
     </div>
+    
+    <div id="toast-container" class="toast-container"></div>
 
     <script type="module" src="{% static 'js/chart.js' %}"></script>
 </body>

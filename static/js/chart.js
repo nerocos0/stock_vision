@@ -17,6 +17,8 @@ const state = {
     }
 };
 
+const loader = document.getElementById('loader');
+
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
 
 // ==========================================
@@ -97,11 +99,29 @@ function getDateRange(timeframe) {
     return { fromDate, toDate };
 }
 
+// Функция для показа уведомлений
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    container.appendChild(toast);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        // Ждем окончания анимации и удаляем
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+}
+
 // ==========================================
 // 4. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ
 // ==========================================
 async function updateChart() {
     try {
+        loader.classList.add('visible');
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
         const dataArray = Array.isArray(data) ? data : data.results;
@@ -150,6 +170,9 @@ async function updateChart() {
         
     } catch (error) {
         console.error("Ошибка при обновлении графика:", error);
+        showToast('Ошибка загрузки графика', 'error');
+    } finally {
+        loader.classList.remove('visible');
     }
 }
 
@@ -233,18 +256,20 @@ async function updateFavoriteButton() {
         const favoritesData = await fetchFavorites();
         const favorite = favoritesData.results.find(fav => fav.instrument_code === state.symbol);
         if (favorite) {
-            favBtn.textContent = '⭐ В избранном';
+            favBtn.textContent = 'В избранном';
             favBtn.classList.add('active');
             favBtn.onclick = async () => {
                 await removeFavorite(favorite.id);
+                showToast('Удалено из избранного', 'info');
                 await updateFavoriteButton();
                 await updateWatchlist();
             };
         } else {
-            favBtn.textContent = '⭐ В избранное';
+            favBtn.textContent = 'В избранное';
             favBtn.classList.remove('active');
             favBtn.onclick = async () => {
                 await addFavorite(state.symbol);
+                showToast('Добавлено в избранное', 'success');
                 await updateFavoriteButton();
                 await updateWatchlist();
             };
@@ -318,6 +343,7 @@ async function updateWatchlist() {
             deleteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 await removeFavorite(fav.id);
+                showToast('Инструмент удален', 'info');
                 await updateWatchlist();
                 await updateFavoriteButton();
             };
@@ -449,6 +475,20 @@ function setupEventListeners() {
         updateChart();
         updateFavoriteButton();
         updateWatchlist();
+    });
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+        const { fromDate, toDate } = getDateRange(state.timeframe);
+        const url = `/api/candles/export/?symbol=${state.symbol}&timeframe=${state.timeframe}&from=${fromDate}&to=${toDate}`;
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', '');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Начинается скачивание CSV...', 'info');
     });
 
     const dropBtn = document.getElementById('indicator-btn');

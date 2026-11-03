@@ -479,6 +479,125 @@ header {
 }
 
 /* =========================================
+   ЛОАДЕР (СПИННЕР) ДЛЯ ГРАФИКА
+   ========================================= */
+.loader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(19, 23, 34, 0.7); /* Полупрозрачный темный фон */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Поверх графика */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* Класс, который мы будем добавлять через JS, чтобы показать лоадер */
+.loader-overlay.visible {
+    opacity: 1;
+    pointer-events: auto; /* Блокируем клики по графику, пока грузимся */
+}
+
+/* =========================================
+   КРАСИВЫЙ ЛОАДЕР (ДВОЙНОЕ КОЛЬЦО)
+   ========================================= */
+.spinner-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+/* Внешнее кольцо */
+.ring:nth-child(1) {
+    border-top-color: #4c546b; /* Синий */
+    border-bottom-color: #4c546b;
+    animation: rotate 1.5s linear infinite;
+}
+
+/* Внутреннее кольцо */
+.ring:nth-child(2) {
+    width: 70%;
+    height: 70%;
+    top: 15%;
+    left: 15%;
+    border-left-color: #010a09; /* Зеленый (как цвет роста) */
+    border-right-color: #000505;
+    animation: rotate-reverse 1s linear infinite;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes rotate-reverse {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+/* =========================================
+   УВЕДОМЛЕНИЯ (TOASTS)
+   ========================================= */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease-out forwards;
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.toast.success { background-color: #26a69a; } /* Зеленый */
+.toast.error { background-color: #ef5350; }   /* Красный */
+.toast.info { background-color: #2962FF; }    /* Синий */
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.toast.fade-out {
+    animation: fadeOut 0.3s ease-in forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+/* =========================================
    АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)
    ========================================= */
 @media (max-width: 768px) {
