@@ -16,13 +16,14 @@ from dateutil.relativedelta import relativedelta
 from .models import Candle, Instrument
 from .serializers import CandleSerializer, InstrumentSerializer
 from .services.twelvedata import TwelveDataService
-from .services.indicators import calculate_rsi, calculate_ema, calculate_sma
+from .services.indicators import calculate_rsi, calculate_ema, calculate_sma, calculate_macd
 
 
 INDICATORS_MAP = {
     'rsi': calculate_rsi,
     'ema': calculate_ema,
-    'sma': calculate_sma
+    'sma': calculate_sma,
+    'macd': calculate_macd,
 }
 
 

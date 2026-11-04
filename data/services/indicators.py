@@ -8,20 +8,20 @@ import numpy as np
    то есть например чтобы посчитать значение RSI для 35 свечи, нужно просканировать предыдущие 14 свечей, то есть от 20 до 34, и на основе этого посчитать 35 свечу"""
 
 
-"""SMA(скользящая средняя) это индикатор, который жестко считает среднюю цену актива за определенный период времени. для подсчета нужно минимум period свечей"""
 def calculate_sma(prices, period):
+    """SMA(скользящая средняя) это индикатор, который жестко считает среднюю цену актива за определенный период времени. для подсчета нужно минимум period свечей"""
     sma = pd.Series(prices).rolling(window=period).mean()
     return sma.where(pd.notnull(sma), None)
 
 
-"""EMA(экспоненциальная скользящая средняя) это индикатор, считающий среднюю цену актива за определенный период времени, придавая больший вес последним (свежим) ценам"""
 def calculate_ema(prices, period):
+    """EMA(экспоненциальная скользящая средняя) это индикатор, считающий среднюю цену актива за определенный период времени, придавая больший вес последним (свежим) ценам"""
     ema = pd.Series(prices).ewm(span=period, adjust=False).mean()
     return ema.where(pd.notnull(ema), None)
 
 
-"""RSI(Индекс относительной силы) это осциллятор, который измеряет скорость и силу изменения цены актива(0-100%)"""
 def calculate_rsi(prices, period):
+    """RSI(Индекс относительной силы) это осциллятор, который измеряет скорость и силу изменения цены актива(0-100%)"""
     df = pd.Series(prices)
     delta = df.diff()
 
@@ -38,3 +38,11 @@ def calculate_rsi(prices, period):
     rsi = rsi.fillna(50)
     
     return rsi
+
+def calculate_macd(prices, period=None):
+    ema_fast = calculate_ema(prices, 12)
+    ema_slow = calculate_ema(prices, 26)
+
+    macd_line = ema_fast - ema_slow
+
+    return macd_line

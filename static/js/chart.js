@@ -13,7 +13,8 @@ const state = {
     indicators: {
         rsi: { enabled: false, period: 14 },
         ema: { enabled: false, period: 20 },
-        sma: { enabled: false, period: 50 }
+        sma: { enabled: false, period: 50 },
+        macd: { enabled: false, period: 0 },
     }
 };
 
@@ -76,11 +77,11 @@ const candleSeries = chart.addCandlestickSeries({
 
 const emaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2 });
 const smaSeries = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
-
+const macdSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, priceScaleId: 'macd'});
 const rsiSeries = chart.addLineSeries({ color: '#7E57C2', lineWidth: 2, priceScaleId: 'rsi' });
-chart.priceScale('rsi').applyOptions({
-    scaleMargins: { top: 0.8, bottom: 0 },
-});
+
+updateOscillatorScales();
+
 
 // ==========================================
 // 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -200,7 +201,12 @@ async function fetchLatestCandle() {
 }
 
 async function updateIndicator(type) {
-    const seriesMap = { rsi: rsiSeries, ema: emaSeries, sma: smaSeries };
+    const seriesMap = {
+        rsi: rsiSeries,
+        ema: emaSeries,
+        sma: smaSeries,
+        macd: macdSeries,
+    };
     const series = seriesMap[type];
     const config = state.indicators[type];
 
@@ -219,8 +225,29 @@ async function updateIndicator(type) {
 }
 
 async function updateAllActiveIndicators() {
-    for (const type of ['rsi', 'ema', 'sma']) {
+    for (const type of ['rsi', 'ema', 'sma', 'macd']) {
         await updateIndicator(type);
+    }
+}
+
+function updateOscillatorScales() {
+    const hasRsi = state.indicators.rsi.enabled;
+    const hasMacd = state.indicators.macd.enabled;
+
+    if (!hasRsi) {
+        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 1, bottom: 0 } });
+    }
+    if (!hasMacd) {
+        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 1, bottom: 0 } });
+    }
+
+    if (hasRsi && hasMacd) {
+        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.7, bottom: 0.15 } });
+        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    } else if (hasRsi) {
+        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+    } else if (hasMacd) {
+        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
     }
 }
 
@@ -503,7 +530,7 @@ function setupEventListeners() {
         if (!dropMenu.contains(e.target)) dropMenu.classList.remove('open');
     });
 
-    ['rsi', 'ema', 'sma'].forEach(type => {
+    ['rsi', 'ema', 'sma', 'macd'].forEach(type => {
         const checkbox = document.getElementById(`chk-${type}`);
         const periodInput = document.getElementById(`period-${type}`);
 
@@ -511,24 +538,26 @@ function setupEventListeners() {
             state.indicators[type].enabled = e.target.checked;
             saveIndicatorSettings();
             updateIndicator(type);
+            updateOscillatorScales();
         });
 
-        periodInput.addEventListener('change', (e) => {
-            let val = parseInt(e.target.value);
-            if (isNaN(val) || val < 2) val = 2;
-            if (val > 200) val = 200;
-            e.target.value = val;
-            
-            state.indicators[type].period = val;
-            saveIndicatorSettings();
-            
-            if (state.indicators[type].enabled) {
-                updateIndicator(type);
-            }
-        });
+        if (periodInput && !periodInput.disabled) {
+            periodInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val) || val < 2) val = 2;
+                if (val > 200) val = 200;
+                e.target.value = val;
+                
+                state.indicators[type].period = val;
+                saveIndicatorSettings();
+                
+                if (state.indicators[type].enabled) {
+                    updateIndicator(type);
+                }
+            });
+        }
     });
 }
-
 function saveIndicatorSettings() {
     localStorage.setItem('indicatorSettings', JSON.stringify(state.indicators));
 }
@@ -576,6 +605,7 @@ async function init() {
     await updateFavoriteButton();
     await updateWatchlist();
     setupResizer();
+    updateOscillatorScales();
     
     setInterval(() => {
         fetchLatestCandle();
