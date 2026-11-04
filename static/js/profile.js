@@ -1,4 +1,5 @@
 import { initAuthUI } from './auth.js';
+import { showToast } from './utils.js';
 
 const token = localStorage.getItem('access_token');
 
@@ -82,12 +83,70 @@ form.addEventListener('submit', async (event) => {
             throw new Error(errorText);
         }
 
-        alert('Пароль успешно изменен!');
+        showToast('Пароль успешно изменен!', 'success');
         btnCancelPassword.click();
         
     } catch (error) {
         errorMsg.textContent = error.message;
         errorMsg.style.display = 'block';
+    }
+});
+
+const btnShowEmail = document.getElementById('btn-show-email');
+const btnCancelEmail = document.getElementById('btn-cancel-email');
+const emailFormContainer = document.getElementById('email-form-container');
+
+btnShowEmail.addEventListener('click', () => {
+    emailFormContainer.style.display = 'block';
+    btnShowEmail.style.display = 'none';
+    passwordFormContainer.style.display = 'none';
+    btnShowPassword.style.display = 'block';
+});
+
+btnCancelEmail.addEventListener('click', () => {
+    emailFormContainer.style.display = 'none';
+    btnShowEmail.style.display = 'block';
+    document.getElementById('change-email-form').reset();
+    document.getElementById('email-error-message').style.display = 'none';
+});
+
+const emailForm = document.getElementById('change-email-form');
+const emailErrorMsg = document.getElementById('email-error-message');
+
+emailForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    emailErrorMsg.style.display = 'none';
+
+    const newEmail = document.getElementById('new_email').value;
+    const password = document.getElementById('email_password').value;
+
+    try {
+        const response = await fetch('/api/auth/profile/change-email/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                new_email: newEmail,
+                password: password
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorText = Object.values(data).flat()[0] || 'Ошибка смены email';
+            throw new Error(errorText);
+        }
+
+        showToast('Email успешно изменен!', 'success');
+        document.getElementById('profile-email').textContent = newEmail;
+        btnCancelEmail.click();
+        
+    } catch (error) {
+        emailErrorMsg.textContent = error.message;
+        emailErrorMsg.style.display = 'block';
     }
 });
 

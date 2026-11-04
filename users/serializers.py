@@ -67,3 +67,27 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class ChangeEmailSerializer(serializers.Serializer):
+    new_email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
+        user = self.context['request'].user
+
+        if not user.check_password(data['password']):
+            raise serializers.ValidationError({'password': 'Неверный пароль'})
+
+        return data
+
+    def validate_new_email(self, value):
+        if User.objects.filter(email=value).exclude(id=self.context['request'].user.id).exists():
+            raise serializers.ValidationError("Этот email уже занят")
+        return value
+
+    def save(self):
+        user = self.context['request'].user
+        user.email = self.validated_data['new_email']
+        user.save()
+        return user

@@ -1,5 +1,6 @@
 import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites, fetchSummary, reorderFavorites } from './api.js';
 import { initAuthUI } from './auth.js';
+import { showToast } from './utils.js';
 
 // ==========================================
 // 1. КОНСТАНТЫ И СОСТОЯНИЕ (STATE)
@@ -100,22 +101,6 @@ function getDateRange(timeframe) {
     return { fromDate, toDate };
 }
 
-// Функция для показа уведомлений
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    
-    container.appendChild(toast);
-
-    // Удаляем через 3 секунды
-    setTimeout(() => {
-        toast.classList.add('fade-out');
-        // Ждем окончания анимации и удаляем
-        toast.addEventListener('animationend', () => toast.remove());
-    }, 3000);
-}
 
 // ==========================================
 // 4. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ

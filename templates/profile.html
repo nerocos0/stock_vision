@@ -12,7 +12,7 @@
         <div id="auth-buttons"></div>
     </header>
 
-    <div class="dashboard-container"> <!-- Используем стили дашборда для отступов -->
+    <div class="dashboard-container">
         <div class="profile-card">
             <h2>Мой профиль</h2>
             <p class="profile-info">Имя пользователя: <strong id="profile-username">...</strong></p>
@@ -20,13 +20,11 @@
             
             <div class="profile-actions">
                 <button id="btn-show-password" class="btn-submit" style="width: auto; padding: 10px 20px;">Сменить пароль</button>
-                <!-- Кнопку смены email добавим позже, когда сделаем бэкенд -->
-                <button id="btn-show-email" class="auth-btn" style="padding: 10px 20px;">Сменить email (скоро)</button>
+                <button id="btn-show-email" class="auth-btn" style="padding: 10px 20px;">Сменить email</button>
             </div>
         </div>
 
-        <!-- Скрытая форма смены пароля -->
-        <div id="password-form-container" class="login-box" style="display: none; margin: 20px auto;">
+        <div id="password-form-container" class="profile-card" style="display: none;">
             <h3 style="color: white; text-align: center;">Смена пароля</h3>
             <form id="change-password-form">
                 <div class="form-group">
@@ -46,8 +44,26 @@
                 <div id="error-message" class="error-msg"></div>
             </form>
         </div>
+
+        <div id="email-form-container" class="profile-card" style="display: none;">
+            <h3 style="color: white; text-align: center;">Смена email</h3>
+            <form id="change-email-form">
+                <div class="form-group">
+                    <label for="new_email">Новый email</label>
+                    <input type="email" id="new_email" required>
+                </div>
+                <div class="form-group">
+                    <label for="email_password">Текущий пароль (для подтверждения)</label>
+                    <input type="password" id="email_password" required>
+                </div>
+                <button type="submit" class="btn-submit">Сменить email</button>
+                <button type="button" id="btn-cancel-email" class="auth-btn" style="width: 100%; margin-top: 10px;">Отмена</button>
+                <div id="email-error-message" class="error-msg"></div>
+            </form>
+        </div>
     </div>
 
+    <div id="toast-container" class="toast-container"></div>
     <script type="module" src="{% static 'js/profile.js' %}"></script>
 </body>
 </html>

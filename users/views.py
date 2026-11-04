@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
 
-from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer
+from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer
 from .models import FavoriteInstrument
 from data.models import Instrument
 
@@ -78,3 +78,20 @@ class ChangePasswordView(APIView):
             return Response({"detail": "Пароль успешно изменен"}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangeEmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=ChangeEmailSerializer,
+        responses={200: None, 400: None}
+    )
+    def post(self, request):
+        serializer = ChangeEmailSerializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Почта успешно изменена"}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        

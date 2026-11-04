@@ -624,11 +624,36 @@ header {
     color: white;
 }
 
-.profile-actions {
-    margin-top: 30px;
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
+/* Кнопки в профиле */
+.profile-actions .btn-submit,
+.profile-actions .auth-btn {
+    width: auto;
+    padding: 12px 24px;
+    font-size: 15px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.profile-actions #btn-show-email {
+    background: #2B2B43;
+    border: 1px solid #2B2B43;
+    color: white;
+}
+
+.profile-actions #btn-show-email:hover {
+    background: #2962FF;
+    border-color: #2962FF;
+}
+
+.profile-card .auth-btn {
+    background: transparent;
+    border: 1px solid #2B2B43;
+    color: #787b86;
+}
+
+.profile-card .auth-btn:hover {
+    background: #2B2B43;
+    color: white;
 }
 
 /* =========================================
