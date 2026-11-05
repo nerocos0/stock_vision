@@ -1,5 +1,15 @@
 import { loginUser } from './api.js';
+import { showToast } from './utils.js';
 
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('verified')) {
+    showToast('Почта успешно подтверждена! Теперь вы можете войти.', 'success');
+    window.history.replaceState({}, document.title, "/auth/");
+} else if (urlParams.has('error')) {
+    showToast('Ссылка подтверждения недействительна или устарела.', 'error');
+    window.history.replaceState({}, document.title, "/auth/");
+}
 
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
@@ -20,7 +30,6 @@ tabRegister.addEventListener('click', () => {
     formLogin.style.display = 'none';
 });
 
-
 formLogin.addEventListener('submit', async (event) => {
     event.preventDefault();
     const errorMsg = document.getElementById('error-login');
@@ -35,11 +44,11 @@ formLogin.addEventListener('submit', async (event) => {
         localStorage.setItem('refresh_token', tokens.refresh);
         window.location.href = '/';
     } catch (error) {
-        errorMsg.textContent = error.message;
+        errorMsg.textContent = "Неверный логин или пароль, либо аккаунт не подтвержден. Проверьте почту.";
         errorMsg.style.display = 'block';
+        showToast('Ошибка входа. Проверьте данные или подтвердите почту.', 'error');
     }
 });
-
 
 formRegister.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -47,6 +56,7 @@ formRegister.addEventListener('submit', async (event) => {
     errorMsg.style.display = 'none';
 
     const username = document.getElementById('reg-username').value;
+    const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
     const password2 = document.getElementById('reg-password2').value;
 
@@ -54,23 +64,24 @@ formRegister.addEventListener('submit', async (event) => {
         const response = await fetch('/api/auth/register/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, password2 })
+            body: JSON.stringify({ username, email, password, password2 })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            const errorText = Object.values(data)[0] || 'Ошибка регистрации';
+            const errorText = Object.values(data).flat()[0] || 'Ошибка регистрации';
             throw new Error(errorText);
         }
 
-        const tokens = await loginUser(username, password);
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        window.location.href = '/';
+        showToast('Регистрация успешна! Проверьте почту для подтверждения.', 'success');
         
+        tabLogin.click(); 
+        formRegister.reset();
+
     } catch (error) {
         errorMsg.textContent = error.message;
         errorMsg.style.display = 'block';
+        showToast(error.message, 'error');
     }
 });

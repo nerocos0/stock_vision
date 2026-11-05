@@ -6,6 +6,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
+from django.shortcuts import redirect
+from django.contrib.auth.models import User
+
+#импорты для работы с почтой
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
 
 from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer
 from .models import FavoriteInstrument
@@ -14,6 +22,27 @@ from data.models import Instrument
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+
+        username = request.data.get('username')
+        user = User.objects.get(username=username)
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        verify_url = f'http://127.0.0.1:8000/api/auth/verify-email/{uid}/{token}/'
+
+        send_mail(
+            subject='Подтверждение почты в StockVision',
+            message=f'Перейдите по ссылке, чтобы подтвердить почту: {verify_url}',
+            from_email='noreply@stockvision.com',
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return response
 
 
 class UserProfileView(APIView):
@@ -78,6 +107,24 @@ class ChangePasswordView(APIView):
             return Response({"detail": "Пароль успешно изменен"}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return redirect('/auth/?verified=1')
+        else:
+            return redirect('/auth/?error=invalid_token')
 
 
 class ChangeEmailView(APIView):

@@ -6,27 +6,36 @@ from data.models import Instrument
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
+    email = serializers.EmailField(required=True)
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'password2']
+        fields = ['username', 'password', 'password2', 'email']
         extra_kwargs = {
             'password': {'write_only': True},
         }
 
     def validate(self, data):
-        if data['password'] == data['password2']:
-            return data
-        else:
+        if data['password'] != data['password2']:
             raise serializers.ValidationError({"password": "Пароли не совпадают"})
 
+        existing_user = User.objects.filter(email=data['email']).first()
+        if existing_user:
+            if existing_user.is_active:
+                raise serializers.ValidationError({"email": "Эта почта уже зарегистрирована"})
+            else:
+                existing_user.delete()
+        return data
+
+    
     def create(self, validated_data):
         validated_data.pop('password2')
 
         username = validated_data['username']
         password = validated_data['password']
+        email = validated_data['email']
 
-        return User.objects.create_user(username=username, password=password)
+        return User.objects.create_user(username=username, password=password, email=email, is_active=False)
 
 
 class FavoriteInstrumentSerializer(serializers.ModelSerializer):
