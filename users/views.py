@@ -18,6 +18,7 @@ from django.contrib.auth.tokens import default_token_generator
 from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer
 from .models import FavoriteInstrument
 from data.models import Instrument
+from .tasks import send_verification_email_task
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -34,13 +35,7 @@ class RegisterView(generics.CreateAPIView):
 
         verify_url = f'http://127.0.0.1:8000/api/auth/verify-email/{uid}/{token}/'
 
-        send_mail(
-            subject='Подтверждение почты в StockVision',
-            message=f'Перейдите по ссылке, чтобы подтвердить почту: {verify_url}',
-            from_email='noreply@stockvision.com',
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        send_verification_email_task.delay(user.email, verify_url)
 
         return response
 
