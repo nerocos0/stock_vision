@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import RegisterView, FavoriteViewSet, ChangePasswordView, UserProfileView, ChangeEmailView, VerifyEmailView
+from .views import RegisterView, FavoriteViewSet, ChangePasswordView, UserProfileView, ChangeEmailView, VerifyEmailView, PasswordResetRequestView , PasswordResetConfirmView
 
 app_name = 'users'
 
@@ -18,6 +18,8 @@ urlpatterns = [
     path('profile/change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view(), name='verify-email'),
     path('profile/change-email/', ChangeEmailView.as_view(), name='change-email'),
+    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('reset-password/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 
     path('', include(router.urls)),
 ]

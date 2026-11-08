@@ -14,3 +14,17 @@ def send_verification_email_task(email, verify_url):
         [email],
         fail_silently=False,
     )
+
+@shared_task
+def send_password_reset_email_task(email, reset_password_url):
+    subject = 'Восстановление пароля в StockVision'
+    message = f'Здравствуйте!\n\nПерейдите по ссылке, чтобы восстановить пароль:\n{reset_password_url}\n\nЕсли вы не регистрировались на сайте, просто проигнорируйте это письмо.'
+    from_email = 'StockVision <noreply@stockvision.com>'
+
+    send_mail(
+        subject,
+        message,
+        from_email,
+        [email],
+        fail_silently=False,
+    )    

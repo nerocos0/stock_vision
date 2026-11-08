@@ -657,6 +657,37 @@ header {
 }
 
 /* =========================================
+   МОДАЛЬНОЕ ОКНО
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Затемнение фона */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: #1e222d;
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid #2B2B43;
+    width: 100%;
+    max-width: 400px;
+}
+
+.modal-content h3 {
+    color: white;
+    margin-top: 0;
+    text-align: center;
+}
+
+/* =========================================
    АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)
    ========================================= */
 @media (max-width: 768px) {

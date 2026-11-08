@@ -10,15 +10,14 @@ from django.shortcuts import redirect
 from django.contrib.auth.models import User
 
 #импорты для работы с почтой
-from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 
-from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer
+from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from .models import FavoriteInstrument
 from data.models import Instrument
-from .tasks import send_verification_email_task
+from .tasks import send_verification_email_task, send_password_reset_email_task
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -136,4 +135,37 @@ class ChangeEmailView(APIView):
             serializer.save()
             return Response({"detail": "Почта успешно изменена"}, status=status.HTTP_200_OK)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data.get('email')
+            user = User.objects.get(email=email)
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            reset_password_url = f'http://127.0.0.1:8000/reset-password/?uid={uid}&token={token}'
+
+            send_password_reset_email_task.delay(email, reset_password_url)
+
+            return Response({"detail": "Письмо отправлено"})
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Пароль успешно изменен"})
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

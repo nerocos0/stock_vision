@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
 
 from django.contrib.auth.models import User
 from .models import FavoriteInstrument
@@ -98,5 +100,44 @@ class ChangeEmailSerializer(serializers.Serializer):
     def save(self):
         user = self.context['request'].user
         user.email = self.validated_data['new_email']
+        user.save()
+        return user
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            return value
+        raise serializers.ValidationError("Нет пользователя с таким email")
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    new_password = serializers.CharField(write_only=True, required=True)
+    new_password2 = serializers.CharField(write_only=True, required=True)
+    uid = serializers.CharField(write_only=True, required=True)
+    token = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['new_password2']:
+            raise serializers.ValidationError({"new_password": "Пароли не совпадают"})
+
+        try:
+            uid = urlsafe_base64_decode(data['uid']).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({"uid": "Неверная ссылка"})
+
+        if not default_token_generator.check_token(user, data['token']):
+            raise serializers.ValidationError({"token": "Ссылка устарела или неверна"})
+
+        self.context['user'] = user
+        
+        return data
+
+    def save(self):
+        user = self.context['user']
+        user.set_password(self.validated_data['new_password'])
         user.save()
         return user

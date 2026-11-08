@@ -85,3 +85,51 @@ formRegister.addEventListener('submit', async (event) => {
         showToast(error.message, 'error');
     }
 });
+
+// --- Логика восстановления пароля ---
+const btnForgot = document.getElementById('btn-forgot-password');
+const modalForgot = document.getElementById('forgot-password-modal');
+const btnCloseModal = document.getElementById('btn-close-modal');
+const formForgot = document.getElementById('forgot-password-form');
+
+// Открыть окно
+btnForgot.addEventListener('click', (e) => {
+    e.preventDefault();
+    modalForgot.style.display = 'flex';
+});
+
+// Закрыть окно
+btnCloseModal.addEventListener('click', () => {
+    modalForgot.style.display = 'none';
+    formForgot.reset();
+});
+
+// Отправка формы
+formForgot.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = document.getElementById('reset-email').value;
+
+    try {
+        const response = await fetch('/api/auth/password-reset/', { // Убедись, что URL совпадает
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Если пользователь не найден или другая ошибка
+            const errorText = Object.values(data).flat()[0] || 'Ошибка';
+            throw new Error(errorText);
+        }
+
+        // Успех
+        showToast('Ссылка для сброса пароля отправлена на почту!', 'success');
+        modalForgot.style.display = 'none';
+        formForgot.reset();
+
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+});
