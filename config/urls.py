@@ -14,7 +14,8 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html'), name='dashboard'),
     path('chart/', TemplateView.as_view(template_name='chart.html'), name='chart'),
     path('profile/', TemplateView.as_view(template_name='profile.html'), name='profile'),  
-    path('reset-password/', TemplateView.as_view(template_name='reset_password.html'), name='reset-password-page'),    
+    path('reset-password/', TemplateView.as_view(template_name='reset_password.html'), name='reset-password-page'),
+    path('calendar/', TemplateView.as_view(template_name='calendar.html'), name='calendar-page'),
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),    

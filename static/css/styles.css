@@ -34,6 +34,27 @@ header {
     flex-wrap: wrap; /* Чтобы на узких экранах элементы переносились */
 }
 
+.main-nav {
+    display: flex;
+    gap: 15px;
+    margin-left: 20px;
+}
+
+.nav-link {
+    color: #787b86;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    color: white;
+    background: #2B2B43;
+}
+
 /* =========================================
    ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (ГРАФИК)
    ========================================= */
@@ -685,6 +706,116 @@ header {
     color: white;
     margin-top: 0;
     text-align: center;
+}
+
+/* Экономический календарь */
+.table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #d1d4dc;
+    background: #1e222d;
+    border-radius: 8px;
+}
+
+.calendar-table th, .calendar-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #2B2B43;
+}
+
+.calendar-table th {
+    background: #131722;
+    font-weight: bold;
+    color: white;
+}
+
+.calendar-table tr:hover {
+    background: #2B2B43;
+}
+
+/* Цвета важности */
+.importance-high { border-left: 3px solid #ef5350; }
+.importance-medium { border-left: 3px solid #FF9800; }
+.importance-low { border-left: 3px solid #787b86; }
+
+.calendar-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    color: #d1d4dc;
+}
+.calendar-filters label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* =========================================
+   ОБЕРТКА ДЛЯ СТРАНИЦЫ ГРАФИКА
+   ========================================= */
+.chart-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+    background: #1e222d;
+    border-bottom: 1px solid #2B2B43;
+    flex-wrap: wrap;
+}
+
+/* Обертка, чтобы график занимал оставшуюся высоту экрана */
+.chart-layout {
+    display: flex;
+    height: calc(100vh - 120px); /* 60px шапка + 60px панель управления */
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Панель управления графиком */
+.chart-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+    background: #1e222d;
+    border-bottom: 1px solid #2B2B43;
+    flex-wrap: wrap;
+}
+
+/* Высота: 100vh - 60px (шапка) - 50px (панель графика) */
+.chart-layout {
+    display: flex;
+    height: calc(100vh - 110px);
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.main-nav {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-link {
+    color: #787b86;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    color: white;
+    background: #2B2B43;
 }
 
 /* =========================================
