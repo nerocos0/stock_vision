@@ -1,31 +1,22 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>StockVision - Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-    <header>
-        <div style="display: flex; align-items: center; gap: 30px;">
-            <a href="/" class="logo">StockVision</a>
-            <nav class="main-nav">
-                <a href="/chart/" class="nav-link">График</a>
-                <a href="/calendar/" class="nav-link">Календарь</a>
-            </nav>
-        </div>
-        
-        <div id="auth-buttons"></div>
-    </header>
 
-    <main class="dashboard-container">
-        <h2 style="color: white; font-weight: 400; margin-bottom: 20px;">Обзор рынка</h2>
-        <div id="cards-grid" class="cards-grid">
-        </div>
-    </main>
+{% block title %}Главная - StockVision{% endblock %}
+{% block nav_home %}active{% endblock %}
 
-    <div id="toast-container" class="toast-container"></div>
-    <script type="module" src="{% static 'js/dashboard.js' %}"></script>
-</body>
-</html>
+{% block content %}
+<header class="page-header">
+    <a href="/" class="logo">StockVision</a>
+    <div id="auth-buttons"></div>
+</header>
+
+<div class="dashboard-container">
+    <h2>Обзор рынка</h2>
+    <div id="cards-grid" class="cards-grid">
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

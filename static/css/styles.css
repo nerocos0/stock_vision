@@ -1,21 +1,102 @@
-* { box-sizing: border-box; }
+/* =========================================
+   1. БАЗОВЫЕ СТИЛИ И СБРОС
+   ========================================= */
+* { 
+    box-sizing: border-box; 
+}
+
 body { 
-    margin: 0; 
-    background-color: #131722; 
+    margin: 0;
+    overflow: hidden;
+    background-color: #131722;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    color: #d1d4dc;
+}
+
+a { text-decoration: none; }
+button { font-family: inherit; }
+
+/* =========================================
+   2. ОБЩАЯ СТРУКТУРА (САЙДБАР + КОНТЕНТ)
+   ========================================= */
+.app-body {
+    display: flex;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background-color: #131722;
+}
+
+/* Левый узкий сайдбар */
+.left-sidebar {
+    width: 60px;
+    background-color: #1e222d;
+    border-right: 1px solid #2B2B43;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Раздвигает верх и низ */
+    padding: 15px 0;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.sidebar-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sidebar-icon {
+    font-size: 22px;
+    text-decoration: none;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.sidebar-icon:hover {
+    opacity: 1;
+    background-color: #2B2B43;
+    transform: scale(1.1);
+}
+
+.sidebar-icon.active {
+    opacity: 1;
+    background-color: #2962FF;
+}
+
+/* Обертка основного контента */
+.main-content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    width: calc(100% - 60px);
 }
 
 /* =========================================
-   ШАПКА САЙТА
+   3. ШАПКИ СТРАНИЦ
    ========================================= */
-header {
+/* Шапка для обычных страниц (Главная, Календарь, Профиль) */
+.page-header {
     background: #1e222d;
     padding: 10px 20px;
     border-bottom: 1px solid #2B2B43;
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     height: 60px;
+    flex-shrink: 0;
 }
 
 .logo {
@@ -24,52 +105,87 @@ header {
     font-size: 20px;
     font-weight: bold;
     letter-spacing: 1px;
-    text-decoration: none;
 }
 
-.controls {
+/* Шапка графика (Панель управления) */
+.chart-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: #1e222d;
+    border-bottom: 1px solid #2B2B43;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.toolbar-left, .toolbar-right {
+    flex: 1; 
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.toolbar-right { justify-content: flex-end; }
+
+.toolbar-center {
     display: flex;
     align-items: center;
     gap: 15px;
-    flex-wrap: wrap; /* Чтобы на узких экранах элементы переносились */
-}
-
-.main-nav {
-    display: flex;
-    gap: 15px;
-    margin-left: 20px;
-}
-
-.nav-link {
-    color: #787b86;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.nav-link:hover {
-    color: white;
-    background: #2B2B43;
 }
 
 /* =========================================
-   ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (ГРАФИК)
+   4. КНОПКИ И ИНПУТЫ
    ========================================= */
-#symbol-select {
+.auth-btn {
+    color: #d1d4dc;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid #2B2B43;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.auth-btn:hover { background: #2B2B43; color: white; }
+.auth-btn.logout { border-color: #ef5350; color: #ef5350; }
+.auth-btn.logout:hover { background: #ef5350; color: white; }
+
+.auth-btn.fav { border-color: #F9A825; color: #F9A825; }
+.auth-btn.fav:hover, .auth-btn.fav.active { background: #F9A825; color: black; }
+
+.btn-submit {
+    width: 100%;
+    padding: 12px;
+    background: #2962FF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: background 0.2s;
+}
+.btn-submit:hover { background: #1e53e5; }
+
+/* Селекты */
+#symbol-select, .footer-select {
     background: #131722;
     color: white;
     border: 1px solid #2B2B43;
     padding: 8px 12px;
     border-radius: 4px;
-    font-size: 15px;
+    font-size: 14px;
     outline: none;
     cursor: pointer;
 }
 #symbol-select:focus { border-color: #2962FF; }
 
+/* =========================================
+   5. ЭЛЕМЕНТЫ ГРАФИКА (Таймфреймы, Индикаторы)
+   ========================================= */
 .timeframes {
     display: flex;
     gap: 5px;
@@ -90,42 +206,81 @@ header {
     border-radius: 4px;
     transition: all 0.2s;
 }
-
 .tf-btn:hover { background: #2B2B43; color: white; }
 .tf-btn.active { background: #2962FF; color: white; }
 
+/* Меню индикаторов */
+.indicator-dropdown { position: relative; }
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #1e222d;
+    border: 1px solid #2B2B43;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 100;
+    width: 160px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.indicator-dropdown.open .dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.indicator-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+.indicator-item label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+.period-input {
+    width: 50px;
+    background: #131722;
+    color: #d1d4dc;
+    border: 1px solid #2B2B43;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 13px;
+    outline: none;
+}
+.period-input:focus { border-color: #2962FF; }
+
 /* =========================================
-   РАСКЛАДКА С ГРАФИКОМ И WATCHLIST
+   6. ЗОНА ГРАФИКА И ВОТЧЛИСТ
    ========================================= */
 .chart-layout {
+    flex-grow: 1;
     display: flex;
-    height: calc(100vh - 60px);
     width: 100%;
     overflow: hidden;
-    position: relative; /* Важно для правильного пересчета */
+    position: relative;
+    height: auto;
 }
 
 #chart-container {
     flex-grow: 1;
     height: 100%;
-    width: 0;        /* Заставляем flexbox правильно делить пространство */
-    min-width: 0;    /* Без этого flexbox может вытолкнуть сайдбар */
+    width: 0;
+    min-width: 0;
     position: relative;
 }
 
-/* Полоса-разделитель */
 .resizer {
     width: 5px;
     cursor: col-resize;
     background-color: #2B2B43;
     transition: background-color 0.2s;
+    flex-shrink: 0;
 }
+.resizer:hover { background-color: #2962FF; }
 
-.resizer:hover {
-    background-color: #2962FF;
-}
-
-/* Сайдбар справа */
 .sidebar {
     width: 250px;
     min-width: 150px;
@@ -138,29 +293,51 @@ header {
     flex-shrink: 0;
 }
 
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    height: 50px; 
+    border-bottom: 1px solid #2B2B43;
+    flex-shrink: 0; 
+}
+
 .sidebar-title {
     color: #d1d4dc;
     font-size: 16px;
-    padding: 15px;
     margin: 0;
-    border-bottom: 1px solid #2B2B43;
+    padding: 0;
+    border: none;
 }
 
-#watchlist-items {
+#fav-btn {
     display: flex;
-    flex-direction: column;
-    padding: 10px;
-    gap: 5px;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 20px;
+    line-height: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #787b86;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
 }
+#fav-btn:hover { color: white; transform: scale(1.1); }
+#fav-btn.active { color: #F9A825; }
 
-/* Стили для расширенного Watchlist */
+/* Список избранного */
+#watchlist-items { display: flex; flex-direction: column; padding: 10px; gap: 5px; }
+
 .watchlist-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: #1e222d;
-    color: #d1d4dc;
-    border: 1px solid transparent; /* Для ховера */
+    border: 1px solid transparent;
     padding: 8px 12px;
     cursor: pointer;
     border-radius: 4px;
@@ -168,51 +345,17 @@ header {
     font-weight: 500;
     transition: background 0.2s;
     position: relative;
-    user-select: none; /* Запрещаем выделять текст при перетаскивании */
+    user-select: none;
 }
+.watchlist-item:hover { background-color: #2B2B43; border-color: #2B2B43; }
+.watchlist-item.active { background-color: #2962FF; color: white; }
+.watchlist-item.dragging { opacity: 0.5; background-color: #2962FF; }
+.watchlist-item.drag-over { border-top: 2px solid #2962FF; }
 
-.watchlist-item:hover {
-    background-color: #2B2B43;
-    color: white;
-    border-color: #2B2B43;
-}
-
-.watchlist-item.active {
-    background-color: #2962FF;
-    color: white;
-}
-
-.watchlist-item.dragging {
-    opacity: 0.5;
-    background-color: #2962FF;
-}
-
-.watchlist-item.drag-over {
-    border-top: 2px solid #2962FF; /* Индикатор места вставки */
-}
-
-.wl-left {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    pointer-events: none; /* Чтобы клик срабатывал по самой кнопке */
-}
-
-.wl-symbol {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.wl-price {
-    font-size: 12px;
-    color: #787b86;
-}
-
-.wl-change {
-    font-size: 11px;
-    font-weight: bold;
-}
-
+.wl-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
+.wl-symbol { font-weight: bold; }
+.wl-price { font-size: 12px; color: #787b86; }
+.wl-change { font-size: 11px; font-weight: bold; }
 .wl-change.up { color: #26a69a; }
 .wl-change.down { color: #ef5350; }
 
@@ -225,66 +368,54 @@ header {
     padding: 4px;
     border-radius: 4px;
     transition: color 0.2s;
-    pointer-events: auto; /* Возвращаем клики */
+    pointer-events: auto;
 }
-
-.wl-delete:hover {
-    color: #ef5350;
-}
-
-/* Выпадающее меню индикаторов */
-.indicator-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-menu {
-    display: none; /* Скрыто по умолчанию */
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background-color: #1e222d;
-    border: 1px solid #2B2B43;
-    border-radius: 4px;
-    padding: 10px;
-    z-index: 100;
-    width: 150px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
-/* Показываем меню, если у родителя есть класс 'open' */
-.indicator-dropdown.open .dropdown-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.dropdown-menu label {
-    color: #d1d4dc;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.dropdown-menu label:hover {
-    color: white;
-}
+.wl-delete:hover { color: #ef5350; }
 
 /* =========================================
-   ГЛАВНАЯ СТРАНИЦА (ДАШБОРД)
+   7. ФУТЕР ГРАФИКА
+   ========================================= */
+.chart-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 35px;
+    padding: 0 20px;
+    background: #1e222d;
+    border-top: 1px solid #2B2B43;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.footer-left { display: flex; align-items: center; }
+.footer-select { padding: 2px 5px; font-size: 12px; border: none; background: transparent; }
+
+.footer-btn {
+    background: transparent;
+    border: 1px solid #2B2B43;
+    color: #787b86;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+.footer-btn:hover { background: #2B2B43; color: white; }
+
+/* =========================================
+   8. ДАШБОРД (ГЛАВНАЯ)
    ========================================= */
 .dashboard-container {
     padding: 30px 40px;
     max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
 }
 
 .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
+    width: 100%;
 }
 
 .card {
@@ -295,534 +426,147 @@ header {
     cursor: pointer;
     transition: transform 0.2s, border-color 0.2s;
 }
+.card:hover { transform: translateY(-2px); border-color: #2962FF; }
 
-.card:hover {
-    transform: translateY(-2px);
-    border-color: #2962FF;
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.card-code {
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-}
-
-.card-name {
-    font-size: 13px;
-    color: #787b86;
-}
-
-.card-price {
-    font-size: 28px;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 5px;
-}
-
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-code { font-size: 18px; font-weight: bold; color: white; }
+.card-name { font-size: 13px; color: #787b86; }
+.card-price { font-size: 28px; font-weight: 600; color: white; margin-bottom: 5px; }
+.card-change { font-size: 15px; font-weight: 500; }
 .price-up { color: #26a69a; }
 .price-down { color: #ef5350; }
 
-.card-change {
-    font-size: 15px;
-    font-weight: 500;
-}
-
 /* =========================================
-   АВТОРИЗАЦИЯ (ЛОГИН/РЕГИСТРАЦИЯ)
+   9. АВТОРИЗАЦИЯ (ВХОД/РЕГИСТРАЦИЯ)
    ========================================= */
-.auth-tabs {
-    display: flex;
-    margin-bottom: 25px;
-    border-bottom: 1px solid #2B2B43;
-}
-
+.auth-tabs { display: flex; margin-bottom: 25px; border-bottom: 1px solid #2B2B43; }
 .auth-tab {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #787b86;
-    font-size: 16px;
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    flex: 1; background: transparent; border: none; color: #787b86;
+    font-size: 16px; padding: 10px; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
 }
-
 .auth-tab:hover { color: white; }
 .auth-tab.active { color: white; border-bottom-color: #2962FF; }
 
-.login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: calc(100vh - 60px);
-}
-
+.login-container { display: flex; justify-content: center; align-items: center; height: calc(100vh - 60px); }
 .login-box {
-    background: #1e222d;
-    padding: 40px;
-    border-radius: 8px;
-    border: 1px solid #2B2B43;
-    width: 100%;
-    max-width: 400px;
+    background: #1e222d; padding: 40px; border-radius: 8px;
+    border: 1px solid #2B2B43; width: 100%; max-width: 400px;
 }
-
-.login-box h2 {
-    color: white;
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 30px;
-}
+.login-box h2 { color: white; text-align: center; margin-top: 0; margin-bottom: 30px; }
 
 .form-group { margin-bottom: 20px; }
-
-.form-group label {
-    display: block;
-    color: #d1d4dc;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
-
+.form-group label { display: block; margin-bottom: 8px; font-size: 14px; }
 .form-group input {
-    width: 100%;
-    padding: 10px;
-    background: #131722;
-    border: 1px solid #2B2B43;
-    border-radius: 4px;
-    color: white;
-    font-size: 15px;
-    outline: none;
-    box-sizing: border-box;
+    width: 100%; padding: 10px; background: #131722;
+    border: 1px solid #2B2B43; border-radius: 4px;
+    color: white; font-size: 15px; outline: none;
 }
-
 .form-group input:focus { border-color: #2962FF; }
-
-.btn-submit {
-    width: 100%;
-    padding: 12px;
-    background: #2962FF;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    font-weight: 500;
-    margin-top: 10px;
-    transition: background 0.2s;
-}
-
-.btn-submit:hover { background: #1e53e5; }
-
-.error-msg {
-    color: #ef5350;
-    font-size: 14px;
-    margin-top: 15px;
-    text-align: center;
-    display: none;
-}
+.error-msg { color: #ef5350; font-size: 14px; margin-top: 15px; text-align: center; display: none; }
 
 /* =========================================
-   КНОПКИ В ШАПКЕ (Войти, Выйти, Избранное)
-   ========================================= */
-.auth-btn {
-    color: #d1d4dc;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 4px;
-    border: 1px solid #2B2B43;
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-}
-
-.auth-btn:hover {
-    background: #2B2B43;
-    color: white;
-}
-
-.auth-btn.logout {
-    border-color: #ef5350;
-    color: #ef5350;
-}
-
-.auth-btn.logout:hover {
-    background: #ef5350;
-    color: white;
-}
-
-/* Стиль для звездочки Избранного */
-.auth-btn.fav {
-    border-color: #F9A825;
-    color: #F9A825;
-}
-
-.auth-btn.fav:hover {
-    background: #F9A825;
-    color: black;
-}
-
-.auth-btn.fav.active {
-    background: #F9A825;
-    color: black;
-}
-/* Стили для полей ввода периода индикаторов */
-.indicator-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 5px;
-}
-
-.period-input {
-    width: 50px;
-    background: #131722;
-    color: #d1d4dc;
-    border: 1px solid #2B2B43;
-    border-radius: 4px;
-    padding: 2px 5px;
-    font-size: 13px;
-    outline: none;
-}
-
-.period-input:focus {
-    border-color: #2962FF;
-}
-
-/* =========================================
-   ЛОАДЕР (СПИННЕР) ДЛЯ ГРАФИКА
-   ========================================= */
-.loader-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(19, 23, 34, 0.7); /* Полупрозрачный темный фон */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000; /* Поверх графика */
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-/* Класс, который мы будем добавлять через JS, чтобы показать лоадер */
-.loader-overlay.visible {
-    opacity: 1;
-    pointer-events: auto; /* Блокируем клики по графику, пока грузимся */
-}
-
-/* =========================================
-   КРАСИВЫЙ ЛОАДЕР (ДВОЙНОЕ КОЛЬЦО)
-   ========================================= */
-.spinner-container {
-    position: relative;
-    width: 60px;
-    height: 60px;
-}
-
-.ring {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 3px solid transparent;
-}
-
-/* Внешнее кольцо */
-.ring:nth-child(1) {
-    border-top-color: #4c546b; /* Синий */
-    border-bottom-color: #4c546b;
-    animation: rotate 1.5s linear infinite;
-}
-
-/* Внутреннее кольцо */
-.ring:nth-child(2) {
-    width: 70%;
-    height: 70%;
-    top: 15%;
-    left: 15%;
-    border-left-color: #010a09; /* Зеленый (как цвет роста) */
-    border-right-color: #000505;
-    animation: rotate-reverse 1s linear infinite;
-}
-
-@keyframes rotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes rotate-reverse {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(-360deg); }
-}
-
-/* =========================================
-   УВЕДОМЛЕНИЯ (TOASTS)
-   ========================================= */
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast {
-    padding: 12px 20px;
-    border-radius: 6px;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease-out forwards;
-    opacity: 0;
-    transform: translateX(100%);
-}
-
-.toast.success { background-color: #26a69a; } /* Зеленый */
-.toast.error { background-color: #ef5350; }   /* Красный */
-.toast.info { background-color: #2962FF; }    /* Синий */
-
-@keyframes slideIn {
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.toast.fade-out {
-    animation: fadeOut 0.3s ease-in forwards;
-}
-
-@keyframes fadeOut {
-    to {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-}
-/* =========================================
-   СТРАНИЦА ПРОФИЛЯ
+   10. ПРОФИЛЬ
    ========================================= */
 .profile-card {
-    background: #1e222d;
-    border: 1px solid #2B2B43;
-    border-radius: 8px;
-    padding: 30px;
-    max-width: 600px;
-    margin: 40px auto;
+    background: #1e222d; border: 1px solid #2B2B43; border-radius: 8px;
+    padding: 30px; max-width: 600px; margin: 40px auto;
 }
-
-.profile-card h2 {
-    color: white;
-    margin-top: 0;
-    margin-bottom: 20px;
-}
-
-.profile-info {
-    color: #d1d4dc;
-    font-size: 16px;
-    margin-bottom: 10px;
-}
-
-.profile-info strong {
-    color: white;
-}
-
-/* Кнопки в профиле */
-.profile-actions .btn-submit,
-.profile-actions .auth-btn {
-    width: auto;
-    padding: 12px 24px;
-    font-size: 15px;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.profile-actions #btn-show-email {
-    background: #2B2B43;
-    border: 1px solid #2B2B43;
-    color: white;
-}
-
-.profile-actions #btn-show-email:hover {
-    background: #2962FF;
-    border-color: #2962FF;
-}
-
-.profile-card .auth-btn {
-    background: transparent;
-    border: 1px solid #2B2B43;
-    color: #787b86;
-}
-
-.profile-card .auth-btn:hover {
-    background: #2B2B43;
-    color: white;
-}
+.profile-card h2 { color: white; margin-top: 0; margin-bottom: 20px; }
+.profile-info { font-size: 16px; margin-bottom: 10px; }
+.profile-info strong { color: white; }
+.profile-actions .btn-submit, .profile-actions .auth-btn { width: auto; padding: 12px 24px; }
+.profile-actions #btn-show-email { background: #2B2B43; border-color: #2B2B43; color: white; }
+.profile-actions #btn-show-email:hover { background: #2962FF; border-color: #2962FF; }
+.profile-card .auth-btn { background: transparent; border-color: #2B2B43; color: #787b86; }
+.profile-card .auth-btn:hover { background: #2B2B43; color: white; }
 
 /* =========================================
-   МОДАЛЬНОЕ ОКНО
+   11. МОДАЛЬНОЕ ОКНО
    ========================================= */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Затемнение фона */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); display: flex;
+    justify-content: center; align-items: center; z-index: 2000;
 }
-
 .modal-content {
-    background: #1e222d;
-    padding: 30px;
-    border-radius: 8px;
-    border: 1px solid #2B2B43;
-    width: 100%;
-    max-width: 400px;
+    background: #1e222d; padding: 30px; border-radius: 8px;
+    border: 1px solid #2B2B43; width: 100%; max-width: 400px;
 }
+.modal-content h3 { color: white; margin-top: 0; text-align: center; }
 
-.modal-content h3 {
-    color: white;
-    margin-top: 0;
-    text-align: center;
-}
-
-/* Экономический календарь */
-.table-container {
-    overflow-x: auto;
-    margin-top: 20px;
-}
-
+/* =========================================
+   12. ЭКОНОМИЧЕСКИЙ КАЛЕНДАРЬ
+   ========================================= */
+.table-container { overflow-x: auto; margin-top: 20px; }
 .calendar-table {
-    width: 100%;
-    border-collapse: collapse;
-    color: #d1d4dc;
-    background: #1e222d;
-    border-radius: 8px;
+    width: 100%; border-collapse: collapse;
+    background: #1e222d; border-radius: 8px;
 }
-
 .calendar-table th, .calendar-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #2B2B43;
+    padding: 12px 15px; text-align: left; border-bottom: 1px solid #2B2B43;
 }
+.calendar-table th { background: #131722; font-weight: bold; color: white; }
+.calendar-table tr:hover { background: #2B2B43; }
 
-.calendar-table th {
-    background: #131722;
-    font-weight: bold;
-    color: white;
-}
-
-.calendar-table tr:hover {
-    background: #2B2B43;
-}
-
-/* Цвета важности */
 .importance-high { border-left: 3px solid #ef5350; }
 .importance-medium { border-left: 3px solid #FF9800; }
 .importance-low { border-left: 3px solid #787b86; }
 
-.calendar-filters {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-    color: #d1d4dc;
-}
-.calendar-filters label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
+.calendar-filters { display: flex; gap: 15px; margin-bottom: 15px; }
+.calendar-filters label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
 /* =========================================
-   ОБЕРТКА ДЛЯ СТРАНИЦЫ ГРАФИКА
+   13. ЛОАДЕР И УВЕДОМЛЕНИЯ
    ========================================= */
-.chart-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 20px;
-    background: #1e222d;
-    border-bottom: 1px solid #2B2B43;
-    flex-wrap: wrap;
+.loader-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(19, 23, 34, 0.7); display: flex;
+    justify-content: center; align-items: center; z-index: 1000;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.loader-overlay.visible { opacity: 1; pointer-events: auto; }
+
+.spinner-container { position: relative; width: 60px; height: 60px; }
+.ring {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 50%; border: 3px solid transparent;
+}
+.ring:nth-child(1) {
+    border-top-color: #2962FF; border-bottom-color: #2962FF;
+    animation: rotate 1.5s linear infinite;
+}
+.ring:nth-child(2) {
+    width: 70%; height: 70%; top: 15%; left: 15%;
+    border-left-color: #26a69a; border-right-color: #26a69a;
+    animation: rotate-reverse 1s linear infinite;
 }
 
-/* Обертка, чтобы график занимал оставшуюся высоту экрана */
-.chart-layout {
-    display: flex;
-    height: calc(100vh - 120px); /* 60px шапка + 60px панель управления */
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-}
+@keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes rotate-reverse { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
 
-/* Панель управления графиком */
-.chart-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 20px;
-    background: #1e222d;
-    border-bottom: 1px solid #2B2B43;
-    flex-wrap: wrap;
+.toast-container {
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 10px;
 }
+.toast {
+    padding: 12px 20px; border-radius: 6px; color: white;
+    font-size: 14px; font-weight: 500; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease-out forwards; opacity: 0; transform: translateX(100%);
+}
+.toast.success { background-color: #26a69a; }
+.toast.error { background-color: #ef5350; }
+.toast.info { background-color: #2962FF; }
 
-/* Высота: 100vh - 60px (шапка) - 50px (панель графика) */
-.chart-layout {
-    display: flex;
-    height: calc(100vh - 110px);
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-}
-
-.main-nav {
-    display: flex;
-    gap: 15px;
-}
-
-.nav-link {
-    color: #787b86;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.nav-link:hover {
-    color: white;
-    background: #2B2B43;
-}
+@keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+.toast.fade-out { animation: fadeOut 0.3s ease-in forwards; }
+@keyframes fadeOut { to { opacity: 0; transform: translateY(20px); } }
 
 /* =========================================
-   АДАПТИВНОСТЬ (ДЛЯ ТЕЛЕФОНОВ)
+   14. АДАПТИВНОСТЬ
    ========================================= */
 @media (max-width: 768px) {
     .dashboard-container { padding: 20px 15px; }
-    header { padding: 10px; }
-    .controls { gap: 10px; }
+    .toolbar-center { flex-wrap: wrap; justify-content: center; }
+    .toolbar-left, .toolbar-right { display: none; }
 }

@@ -1,98 +1,75 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>StockVision Chart</title>
-    <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
 
-    <header>
-        <a href="/" class="logo">StockVision</a>
-        
-        <div class="controls">
-            <button id="export-btn" class="auth-btn" style="margin-right: 10px;">
-                CSV
-            </button>
-            <button id="fav-btn" class="auth-btn fav" style="display: none;">
-                В избранное
-            </button>
+{% block title %}График - StockVision{% endblock %}
+{% block nav_chart %}active{% endblock %}
 
-            <select id="symbol-select">
-                <option value="EURUSD">Загрузка...</option>
-            </select>
+{% block extra_head %}
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+{% endblock %}
 
-            <select id="timezone-select" class="auth-btn" style="padding: 6px; font-size: 14px; cursor: pointer;">
-                <option value="0">UTC</option>
-                <option value="3">МСК (UTC+3)</option>
-                <option value="-5">Нью-Йорк (UTC-5)</option>
-            </select>
-            
-            <div class="timeframes">
-                <button class="tf-btn" data-tf="5min">5m</button>
-                <button class="tf-btn active" data-tf="1h">1h</button>
-                <button class="tf-btn" data-tf="4h">4h</button>
-                <button class="tf-btn" data-tf="1day">1D</button>
-                <button class="tf-btn" data-tf="1week">1W</button>
-                <button class="tf-btn" data-tf="1month">1M</button>
-            </div>
-
-            <div class="indicator-dropdown">
-                <button id="indicator-btn" class="auth-btn">Индикаторы ▾</button>
-                <div id="indicator-menu" class="dropdown-menu">
-                    <div class="indicator-item">
-                        <label>
-                            <input type="checkbox" id="chk-rsi" value="rsi"> RSI
-                        </label>
-                        <input type="number" id="period-rsi" class="period-input" value="14" min="2" max="200">
-                    </div>
-                    <div class="indicator-item">
-                        <label>
-                            <input type="checkbox" id="chk-ema" value="ema"> EMA
-                        </label>
-                        <input type="number" id="period-ema" class="period-input" value="20" min="2" max="200">
-                    </div>
-                    <div class="indicator-item">
-                        <label>
-                            <input type="checkbox" id="chk-sma" value="sma"> SMA
-                        </label>
-                        <input type="number" id="period-sma" class="period-input" value="50" min="2" max="200">
-                    </div>
-                    <div class="indicator-item">
-                        <label>
-                            <input type="checkbox" id="chk-macd" value="macd"> MACD
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="auth-buttons"></div>
-    </header>
-
-    <div class="chart-layout">
-        <div id="chart-container"></div>
-
-        <div id="loader" class="loader-overlay">
-            <div class="spinner-container">
-                <div class="ring"></div>
-                <div class="ring"></div>
-            </div>
-        </div>
-
-        <div class="resizer" id="dragMe"></div>
-
-        <aside class="sidebar" id="watchlist-sidebar">
-            <h3 class="sidebar-title">Избранное</h3>
-            <div id="watchlist-items">
-            </div>
-        </aside>
+{% block content %}
+<div class="chart-toolbar">
+    <div class="toolbar-left">
+        <select id="symbol-select" class="toolbar-select"><option value="EURUSD">Загрузка...</option></select>
     </div>
-    
-    <div id="toast-container" class="toast-container"></div>
 
-    <script type="module" src="{% static 'js/chart.js' %}"></script>
-</body>
-</html>
+    <div class="toolbar-center">
+        <div class="timeframes">
+            <button class="tf-btn" data-tf="5min">5m</button>
+            <button class="tf-btn active" data-tf="1h">1h</button>
+            <button class="tf-btn" data-tf="4h">4h</button>
+            <button class="tf-btn" data-tf="1day">1D</button>
+            <button class="tf-btn" data-tf="1week">1W</button>
+            <button class="tf-btn" data-tf="1month">1M</button>
+        </div>
+        <div class="indicator-dropdown">
+            <button id="indicator-btn" class="auth-btn">Индикаторы ▾</button>
+            <div id="indicator-menu" class="dropdown-menu">
+                <div class="indicator-item"><label><input type="checkbox" id="chk-rsi"> RSI</label><input type="number" id="period-rsi" class="period-input" value="14"></div>
+                <div class="indicator-item"><label><input type="checkbox" id="chk-ema"> EMA</label><input type="number" id="period-ema" class="period-input" value="20"></div>
+                <div class="indicator-item"><label><input type="checkbox" id="chk-sma"> SMA</label><input type="number" id="period-sma" class="period-input" value="50"></div>
+                <div class="indicator-item"><label><input type="checkbox" id="chk-macd"> MACD</label></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar-right">
+        <div id="auth-buttons"></div>
+    </div>
+</div>
+
+<div id="loader" class="loader-overlay">
+    <div class="spinner-container"><div class="ring"></div><div class="ring"></div></div>
+</div>
+
+<div class="chart-layout">
+    <div id="chart-container"></div>
+    <div class="resizer" id="dragMe"></div>
+    <aside class="sidebar" id="watchlist-sidebar">
+        <div class="sidebar-header">
+            <h3 class="sidebar-title">Избранное</h3>
+            <button id="fav-btn" class="auth-btn fav" style="display: none;" title="Добавить в избранное">☆</button>
+        </div>
+        <div id="watchlist-items"></div>
+    </aside>
+</div>
+
+<div class="chart-footer">
+    <div class="footer-left">
+        <span style="color: #787b86; font-size: 12px; margin-right: 10px;">Часовой пояс:</span>
+        <select id="timezone-select" class="footer-select">
+            <option value="0">UTC</option>
+            <option value="3">МСК (UTC+3)</option>
+            <option value="-5">Нью-Йорк (UTC-5)</option>
+        </select>
+    </div>
+    <div class="footer-right">
+        <button id="export-btn" class="footer-btn" title="Скачать данные в CSV">📥 Экспорт CSV</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/chart.js' %}"></script>
+{% endblock %}

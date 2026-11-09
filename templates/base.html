@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}StockVision{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="app-body">
+
+    <aside class="left-sidebar">
+        <div class="sidebar-top">
+            <a href="/" class="sidebar-icon {% block nav_home %}{% endblock %}" title="Главная">🏠</a>
+            <a href="/chart/" class="sidebar-icon {% block nav_chart %}{% endblock %}" title="График">📈</a>
+            <a href="/calendar/" class="sidebar-icon {% block nav_calendar %}{% endblock %}" title="Календарь">📅</a>
+        </div>
+    </aside>
+
+    <main class="main-content-wrapper">
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="{% static 'js/utils.js' %}"></script>
+    <script type="module" src="{% static 'js/auth.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

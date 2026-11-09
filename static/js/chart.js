@@ -262,26 +262,33 @@ async function initInstruments() {
 async function updateFavoriteButton() {
     const favBtn = document.getElementById('fav-btn');
     const token = localStorage.getItem('access_token');
-    if (!token) { favBtn.style.display = 'none'; return; }
-    favBtn.style.display = 'block';
+    
+    if (!token) { 
+        favBtn.style.display = 'none'; 
+        return; 
+    }
+    
+    favBtn.style.display = 'flex';
+    
     try {
         const favoritesData = await fetchFavorites();
         const favorite = favoritesData.results.find(fav => fav.instrument_code === state.symbol);
+        
         if (favorite) {
-            favBtn.textContent = 'В избранном';
+            favBtn.innerHTML = '★';
             favBtn.classList.add('active');
+            favBtn.title = 'Удалить из избранного';
             favBtn.onclick = async () => {
                 await removeFavorite(favorite.id);
-                showToast('Удалено из избранного', 'info');
                 await updateFavoriteButton();
                 await updateWatchlist();
             };
         } else {
-            favBtn.textContent = 'В избранное';
+            favBtn.innerHTML = '☆';
             favBtn.classList.remove('active');
+            favBtn.title = 'Добавить в избранное';
             favBtn.onclick = async () => {
                 await addFavorite(state.symbol);
-                showToast('Добавлено в избранное', 'success');
                 await updateFavoriteButton();
                 await updateWatchlist();
             };

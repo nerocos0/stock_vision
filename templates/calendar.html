@@ -1,52 +1,36 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>StockVision - Экономический календарь</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-    <header>
-        <div style="display: flex; align-items: center; gap: 30px;">
-            <a href="/" class="logo">StockVision</a>
-            <nav class="main-nav">
-                <a href="/chart/" class="nav-link">График</a>
-                <a href="/calendar/" class="nav-link">Календарь</a>
-            </nav>
-        </div>
-        
-        <div id="auth-buttons"></div>
-    </header>
 
-    <main class="dashboard-container">
-        <h2 style="color: white; font-weight: 400; margin-bottom: 20px;">Экономический календарь</h2>
-        
-        <div class="calendar-filters">
-            <label><input type="checkbox" id="filter-high" checked> Высокая</label>
-            <label><input type="checkbox" id="filter-medium"> Средняя</label>
-            <label><input type="checkbox" id="filter-low"> Низкая</label>
-        </div>
+{% block title %}Календарь - StockVision{% endblock %}
 
-        <div class="table-container">
-            <table class="calendar-table">
-                <thead>
-                    <tr>
-                        <th>Время</th>
-                        <th>Валюта</th>
-                        <th>Событие</th>
-                        <th>Факт</th>
-                        <th>Прогноз</th>
-                        <th>Предыдущее</th>
-                    </tr>
-                </thead>
-                <tbody id="calendar-body">
-                </tbody>
-            </table>
-        </div>
-    </main>
+{% block nav_calendar %}active{% endblock %} <!-- Подсвечиваем иконку календаря -->
 
-    <div id="toast-container" class="toast-container"></div>
-    <script type="module" src="{% static 'js/calendar.js' %}"></script>
-</body>
-</html>
+{% block content %}
+<header class="page-header">
+    <a href="/" class="logo">StockVision</a>
+    <div id="auth-buttons"></div>
+</header>
+
+<div class="dashboard-container">
+    <h2>Экономический календарь</h2>
+    
+    <div class="calendar-filters">
+        <label><input type="checkbox" id="filter-high" checked> Высокая</label>
+        <label><input type="checkbox" id="filter-medium"> Средняя</label>
+        <label><input type="checkbox" id="filter-low"> Низкая</label>
+    </div>
+
+    <div class="table-container">
+        <table class="calendar-table">
+            <thead>
+                <tr><th>Время</th><th>Валюта</th><th>Событие</th><th>Факт</th><th>Прогноз</th><th>Предыдущее</th></tr>
+            </thead>
+            <tbody id="calendar-body"></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/calendar.js' %}"></script>
+{% endblock %}
