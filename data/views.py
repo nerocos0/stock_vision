@@ -10,11 +10,12 @@ from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from datetime import datetime, timezone
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 from dateutil.relativedelta import relativedelta
 
-from .models import Candle, Instrument
-from .serializers import CandleSerializer, InstrumentSerializer
+from .models import Candle, Instrument, EconomicEvent
+from .serializers import CandleSerializer, InstrumentSerializer, EconomicEventSerializer
 from .services.twelvedata import TwelveDataService
 from .services.indicators import calculate_rsi, calculate_ema, calculate_sma, calculate_macd
 
@@ -234,3 +235,20 @@ class IndicatorView(DateParseMixin, APIView):
             })
 
         return result
+
+
+class EconomicEventView(ReadOnlyModelViewSet):
+    serializer_class = EconomicEventSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        now = timezone.now()
+        past_events_date = now - relativedelta(days=7)
+        future_events_date = now + relativedelta(days=7)
+
+        queryset = EconomicEvent.objects.filter(
+            time__gte=past_events_date,
+            time__lte=future_events_date
+        ).order_by('time')
+
+        return queryset

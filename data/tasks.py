@@ -2,12 +2,16 @@ import logging
 from celery import shared_task
 from datetime import timedelta
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ObjectDoesNotExist
 
+from .models import EconomicEvent
 from .models import Candle, Instrument
+
 from .services.twelvedata import TwelveDataService
 from .services.candle_saver import validate_candles_for_db
 from .services.aggregator import aggregate_candles
+from .services.calendar import get_economic_calendar, BiquoteError
 
 
 class UpdateRealtimeError(Exception):
@@ -136,3 +140,42 @@ def get_aggregate_and_save_in_db_candles(start_hour, now, instrument, timeframe_
             unique_fields=['instrument', 'timeframe', 'datetime'],
             update_fields=['open_price', 'high_price', 'low_price', 'close_price']
         )
+
+
+@shared_task
+def sync_economic_calendar():
+    logger.info("Начинаю синхронизацию экономического календаря...")
+
+    try:
+        events = get_economic_calendar()
+    except BiquoteError as e:
+        logger.error(f"Ошибка получения календаря: {e}")
+        return
+
+    created_count = 0
+    updated_count = 0
+
+    for event in events:
+        event_time = parse_datetime(event['time'])
+
+        obj, created = EconomicEvent.objects.update_or_create(
+            event_id = event['eventId'],
+            defaults={
+                'time': event_time,
+                'country': event['countryCode'],
+                'currency': event['currency'],
+                'name': event['name'],
+                'importance': event['importance'],
+                'actual': event.get('actual'),
+                'forecast': event.get('forecast'),
+                'previous': event.get('previous'),
+                'unit': event.get('unit', ''),                
+            }
+        )
+
+        if created:
+            created_count += 1
+        else:
+            updated_count += 1
+
+    logger.info(f"Синхронизация завершена. Создано: {created_count}, Обновлено: {updated_count}")        

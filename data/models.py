@@ -36,3 +36,29 @@ class Candle(models.Model):
 
     def __str__(self):
         return f"{self.instrument.code}  {self.timeframe} {self.datetime}"
+
+
+class EconomicEvent(models.Model):
+    class Importance(models.TextChoices):
+        LOW = 'low', 'Low'
+        MEDIUM = 'medium', 'Medium'
+        HIGH = 'high', 'High'
+
+    event_id = models.CharField(max_length=100, db_index=True, unique=True)
+    time = models.DateTimeField(db_index=True)
+    country = models.CharField(max_length=10)
+    currency = models.CharField(max_length=10)
+    name = models.CharField(max_length=255)
+    importance = models.CharField(max_length=10, choices=Importance.choices)
+    
+    actual = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
+    forecast = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
+    previous = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
+    
+    unit = models.CharField(max_length=20, blank=True, default='')
+
+    class Meta:
+        ordering = ['-time']
+
+    def __str__(self):
+        return f"{self.currency} - {self.name}"

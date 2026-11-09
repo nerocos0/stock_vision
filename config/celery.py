@@ -15,4 +15,8 @@ app.conf.beat_schedule = {
         'task': 'data.tasks.update_realtime_all_candles',
         'schedule': crontab(minute='*/5'),
     },
+    'sync-economic-calendar-every-hour': {
+        'task': 'data.tasks.sync_economic_calendar',
+        'schedule': crontab(minute=0),
+    },
 }

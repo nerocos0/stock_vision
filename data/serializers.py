@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Candle, Instrument
+from .models import Candle, Instrument, EconomicEvent
 
 class CandleSerializer(serializers.ModelSerializer):
     instrument = serializers.CharField(source='instrument.code', read_only=True)
@@ -15,4 +15,11 @@ class InstrumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instrument
         fields = ['id', 'code', 'name', 'instrument_type', 'is_active']
+        read_only_fields = fields
+
+
+class EconomicEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EconomicEvent
+        fields = ['id', 'event_id', 'time', 'country', 'currency', 'name', 'importance', 'actual', 'forecast', 'previous', 'unit']
         read_only_fields = fields
