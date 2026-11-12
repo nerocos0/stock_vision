@@ -1,11 +1,14 @@
 import asyncio
+import json
+import redis.asyncio as redis
 from pysignalr.client import SignalRClient
 from datetime import datetime
 
 
 TIMEFRAME_MINUTES = 5
 
-current_candle = None
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
 
 def get_period_start(dt):
     minute = (dt.minute // TIMEFRAME_MINUTES) * TIMEFRAME_MINUTES
@@ -32,27 +35,43 @@ def close_candle(candle):
     print(f'СВЕЧА ЗАКРЫЛАСЬ: {candle}')
 
 async def on_tick(tick_data):
-    global current_candle
-
     for tick in tick_data:
+        key = f"candle:{tick['symbol']}:5m"
+        raw = await redis_client.get(key)
+        if raw:
+            candle = json.loads(raw)
+            candle["time"] = datetime.strptime(candle["time"], "%Y-%m-%d %H:%M:%S")
+        else:
+            candle = None
+
         price = float(tick["mid"])
         tick_time = datetime.strptime(tick["time"], "%Y.%m.%d %H:%M:%S")
 
         period_start = get_period_start(tick_time)
 
-        if current_candle is None:
-            current_candle = create_candle(price, period_start)
-            print(f"Начата новая свеча: {current_candle}")
-            return
+        if candle is None:
+            candle = create_candle(price, period_start)
+            candle_str = json.dumps(candle, default=str)
 
-        if current_candle["time"] == period_start:
+            await redis_client.set(key, candle_str)
+
+            print(f"Начата новая свеча: {candle}")
+            continue
+
+        if candle["time"] == period_start:
             print('ОБНОВЛЕНА СВЕЧА')
-            current_candle = update_candle(current_candle, price)
-
+            candle = update_candle(candle, price)
+            candle_str = json.dumps(candle, default=str)
+                
+            await redis_client.set(key, candle_str)
         else:
-            close_candle(current_candle)
-            current_candle = create_candle(price, period_start)
-            print(f"Начата новая свеча: {current_candle}")
+            close_candle(candle)
+            candle = create_candle(price, period_start)
+            candle_str = json.dumps(candle, default=str)
+                
+            await redis_client.set(key, candle_str)            
+            'загружаю в бд тут'
+            print(f"Начата новая свеча: {candle}")
 
 async def on_open(client):
     print("Подключились. Подписываемся на EURUSD...")

@@ -1,7 +1,10 @@
 import csv
 import math
+import json
+import redis
 import logging
 from django.core.cache import cache
+from rest_framework import status
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.views import APIView
 from rest_framework.decorators import action
@@ -119,6 +122,22 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
             ])
 
         return response
+
+    @action(detail=False, methods=['get'])
+    def current(self, request):
+        symbol = self.request.query_params.get('symbol')
+        timeframe = request.query_params.get('timeframe')
+
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+        redis_key = f"candle:{symbol}:{timeframe}"
+        raw = redis_client.get(redis_key)
+        if raw is not None:
+            logger.debug(f"ВЗЯЛИ ИЗ КЭША: {redis_key}")
+            candle = json.loads(raw)
+            return Response(candle)
+        
+        return Response({"detail": "Нет данных"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class InstrumentView(ReadOnlyModelViewSet):
