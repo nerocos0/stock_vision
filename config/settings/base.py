@@ -14,6 +14,7 @@ TWELVE_DATA_API_KEY = os.getenv('TWELVE_DATA_API_KEY')
 
 
 INSTALLED_APPS = [
+    'daphne',    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -26,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_spectacular',
     'django_celery_beat',
+    'channels',
 
     'data',
     'users',
@@ -143,6 +145,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 DATABASES = {

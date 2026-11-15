@@ -23,6 +23,51 @@ const loader = document.getElementById('loader');
 
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
 
+// ============================================
+// WEBSOCKET ДЛЯ REAL-TIME СВЕЧЕЙ
+// ============================================
+let candleWs = null;
+let reconnectTimer = null;
+
+function connectCandleWebSocket() {
+    clearTimeout(reconnectTimer);
+
+    if (candleWs) {
+        const old = candleWs;
+        candleWs = null;
+        old.onclose = null;
+        old.onmessage = null;
+        old.close();
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${protocol}://${window.location.host}/ws/candle/${state.symbol}/${state.timeframe}/`;
+    const ws = new WebSocket(url);
+    candleWs = ws;
+
+    ws.onmessage = (event) => {
+        try {
+            const candle = JSON.parse(event.data);
+            candleSeries.update({
+                time: Math.floor(new Date(candle.time).getTime() / 1000),
+                open: parseFloat(candle.open),
+                high: parseFloat(candle.high),
+                low: parseFloat(candle.low),
+                close: parseFloat(candle.close),
+            });
+        } catch (e) {
+            console.error("Ошибка парсинга WebSocket-сообщения:", e);
+        }
+    };
+
+    ws.onerror = (error) => console.error("Ошибка WebSocket:", error);
+
+    ws.onclose = () => {
+        if (candleWs !== ws) return;
+        reconnectTimer = setTimeout(connectCandleWebSocket, 3000);
+    };
+}
+
 // ==========================================
 // 2. ИНИЦИАЛИЗАЦИЯ ГРАФИКА
 // ==========================================
@@ -133,6 +178,8 @@ async function updateChart() {
         }
 
         candleSeries.setData(formattedData);
+
+        connectCandleWebSocket();
 
         candleSeries.priceScale().applyOptions({
             autoScale: true,
@@ -599,9 +646,6 @@ async function init() {
     setupResizer();
     updateOscillatorScales();
     
-    setInterval(() => {
-        fetchLatestCandle();
-    }, 30000);
 }
 
 init();
