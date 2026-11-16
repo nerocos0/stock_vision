@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from datetime import datetime
+from datetime import datetime, UTC
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 from dateutil.relativedelta import relativedelta
@@ -41,12 +41,12 @@ class DateParseMixin:
         dt = parse_datetime(date_str)
         if dt is not None:
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.UTC)
+                dt = dt.replace(tzinfo=UTC)
             return dt
             
         d = parse_date(date_str)
         if d is not None:
-            dt = datetime.combine(d, datetime.min.time()).replace(tzinfo=timezone.UTC)
+            dt = datetime.combine(d, datetime.min.time()).replace(tzinfo=UTC)
             return dt
         return None   
 
@@ -207,7 +207,7 @@ class IndicatorView(DateParseMixin, APIView):
         if not calculate_func:
             return {"error": f"Индикатор '{indicator_type}' не поддерживается"}
 
-        to_dt = self._parse_date_param(to_str) or datetime.now(timezone.UTC)
+        to_dt = self._parse_date_param(to_str) or datetime.now(UTC)
         from_dt = self._parse_date_param(from_str)
         if from_dt is None:
             #Если from не передан, берем данные за последние 30 дней

@@ -1,6 +1,10 @@
 import pandas as pd
 
 def aggregate_candles(candles, target_timeframe):
+    """
+    Агрегирует из свечей младшего таймфрейма в свечи старшего таймфрейма.
+    Отдает список словарей свечей нового таймфрейма.
+    """
     data = [{
         'datetime': candle.datetime,
         'open': float(candle.open_price),

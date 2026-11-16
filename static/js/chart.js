@@ -49,14 +49,14 @@ function connectCandleWebSocket() {
         try {
             const candle = JSON.parse(event.data);
             candleSeries.update({
-                time: Math.floor(new Date(candle.time).getTime() / 1000),
+                time: toUnixSeconds(candle.time),
                 open: parseFloat(candle.open),
                 high: parseFloat(candle.high),
                 low: parseFloat(candle.low),
                 close: parseFloat(candle.close),
             });
         } catch (e) {
-            console.error("Ошибка парсинга WebSocket-сообщения:", e);
+            console.error("Ошибка парсинга WebSocket-сообщения:", e, event.data);
         }
     };
 
@@ -146,6 +146,11 @@ function getDateRange(timeframe) {
     return { fromDate, toDate };
 }
 
+function toUnixSeconds(t) {
+    if (typeof t === 'number') return t;
+    if (/^\d+$/.test(t)) return Number(t);
+    return Math.floor(Date.parse(t.replace(' ', 'T') + 'Z') / 1000);
+}
 
 // ==========================================
 // 4. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ

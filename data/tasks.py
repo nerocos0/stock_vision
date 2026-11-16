@@ -1,6 +1,6 @@
 import logging
 from celery import shared_task
-from datetime import timedelta
+from datetime import datetime, timedelta, UTC
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,7 +10,7 @@ from .models import Candle, Instrument
 
 from .services.twelvedata import TwelveDataService
 from .services.candle_saver import validate_candles_for_db
-from .services.aggregator import aggregate_candles
+from .services.twelvedata_aggregator import aggregate_candles
 from .services.calendar import get_economic_calendar, BiquoteError
 
 
@@ -26,8 +26,56 @@ class UpdateRealtimeOtherCandlesError(UpdateRealtimeError):
 
 logger = logging.getLogger(__name__)
 
+
+
+#сохранение уже закрытых свечей в бд полученных реалтайм по тикам с biquote с помощью websocets(основной источник реалтайм свечей)
+@shared_task
+def save_realtime_candle(symbol, timeframe, candle_data):
+    """
+    Celery задача.
+    Сохраняет закрытую свечу в бд.
+    Принимает код инструмента, таймфрейм и словарь с полями: open, high, low, close, time.
+    """
+    try:
+        instrument = Instrument.objects.filter(code=symbol).first()
+        if not instrument:
+            logger.error(f"Инструмент {symbol} не найден в БД")
+            return
+
+        candle_time = candle_data['time']
+
+        if isinstance(candle_time, str):
+            candle_time = datetime.fromisoformat(candle_time)
+
+        if timezone.is_naive(candle_time):
+            candle_time = timezone.make_aware(candle_time, UTC)        
+        
+        Candle.objects.update_or_create(
+            instrument=instrument,
+            timeframe=timeframe,
+            datetime=candle_time,
+            defaults={
+                'open_price': candle_data['open'],
+                'high_price': candle_data['high'],
+                'low_price': candle_data['low'],
+                'close_price': candle_data['close'],
+            }
+        )
+        logger.info(f"Свеча сохранена: {symbol} {timeframe} {candle_data['time']}")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения свечи: {e}")
+        raise
+
+
+
+#блок получения и сохранения в бд семи-реалтайм свечей с TwelvData api запросами раз в 5 минут(запасной источник реалтайм свечей)
 @shared_task
 def update_realtime_all_candles():
+    """
+    Celery задача.
+    Обновляет свечи всех таймфреймов(до 1d) и всех инструментов и записывает их в бд.
+    """
+
     logger.info('Запуск обновления свечей')
     active_instruments = Instrument.objects.filter(is_active=True)
 
@@ -47,9 +95,12 @@ def update_realtime_all_candles():
 
         logger.info(f'Успешно обновились все свечи {instrument}')
 
-
-
 def update_realtime_5m_candles(symbol):
+    """
+    Обновляет и записывает в бд реалтайм 5м свечу.
+    Принимает код инструмента.
+    """
+
     timeframe = '5min'
     now = timezone.now()
     end_date_str = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -95,10 +146,15 @@ def update_realtime_5m_candles(symbol):
 #пока сделаем для 4h базовый интервал(00:00-04:00-08:00.....)
 #потом будем фильтровать для разных инструментов, ибо например для XAUUSD нужно 01:00-05:00-09:00.....
 def update_realtime_other_candles(instrument):
+    """
+    Записывает в бд обновленные свечи(свыше 5min), агрегированные из 5m свечей.
+    Принимает инструмент.
+    """
+
     now = timezone.now()
     #для 1h
     start_of_1h = now.replace(minute=0, second=0, microsecond=0)
-    get_aggregate_and_save_in_db_candles(
+    aggregate_and_save_in_db_candles(
         start_hour=start_of_1h,
         now=now,
         instrument=instrument,
@@ -108,15 +164,19 @@ def update_realtime_other_candles(instrument):
     #для 4h
     hour_block = (now.hour//4)*4
     start_of_4h = now.replace(hour=hour_block, minute=0, second=0, microsecond=0)
-    get_aggregate_and_save_in_db_candles(
+    aggregate_and_save_in_db_candles(
         start_hour=start_of_4h,
         now=now,
         instrument=instrument,
         timeframe_for_aggregate='4h'
     )    
 
+def aggregate_and_save_in_db_candles(start_hour, now, instrument, timeframe_for_aggregate):
+    """
+    Агрегирует и записывает реалтайм свечи в бд.
+    Принимает время начала нынешней свечи, нынешнее время, инструмент и таймфрейм в который нужно агрегировать.
+    """
 
-def get_aggregate_and_save_in_db_candles(start_hour, now, instrument, timeframe_for_aggregate):
     candles_for_aggregate = Candle.objects.filter(
         instrument=instrument,
         timeframe = '5min',
@@ -140,10 +200,14 @@ def get_aggregate_and_save_in_db_candles(start_hour, now, instrument, timeframe_
             unique_fields=['instrument', 'timeframe', 'datetime'],
             update_fields=['open_price', 'high_price', 'low_price', 'close_price']
         )
+#конец блока запасного источника реалтайм свечей
 
 
+#Создание или обновление экономического словаря в бд, полученного с внешнего api biquote(скрипт получения в services)
 @shared_task
 def sync_economic_calendar():
+    """Celery задача. Создает или обновляет записи в таблице экономического календаря в бд"""
+
     logger.info("Начинаю синхронизацию экономического календаря...")
 
     try:

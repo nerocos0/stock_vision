@@ -16,7 +16,7 @@ class CandleConsumer(AsyncWebsocketConsumer):
             host='localhost',
             port=6379,
             db=0,
-            socket_timeout=20,
+            health_check_interval=30,
         )
 
         await self.accept()
@@ -37,6 +37,10 @@ class CandleConsumer(AsyncWebsocketConsumer):
             except Exception as e:
                 logger.error(f"ОШИБКА В CONSUMER (перезапуск через 1 сек): {type(e).__name__}: {e}")
                 await asyncio.sleep(1)
+                try:
+                    await self.pubsub.close()
+                except Exception:
+                    pass
                 self.pubsub = self.redis_client.pubsub()
                 await self.pubsub.subscribe("candle_updates")
 
