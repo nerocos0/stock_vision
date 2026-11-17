@@ -4,7 +4,9 @@ import logging
 import redis.asyncio as redis
 from django.core.management.base import BaseCommand
 from pysignalr.client import SignalRClient
+
 from data.services.biquote_aggregator import CandleAggregator
+from data.models import Instrument
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +22,20 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Запускаю агрегатор...'))
+
+        symbols = list(
+            Instrument.objects.filter(is_active=True).values_list('code', flat=True)
+        )
+        if not symbols:
+            logger.error('Нет активных инструментов в БД')
+            return
+                
         try:
-            asyncio.run(self.run_aggregator())
+            asyncio.run(self.run_aggregator(symbols))
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING('Остановлено пользователем.'))
 
-    async def run_aggregator(self):
+    async def run_aggregator(self, symbols):
         redis_client = redis.Redis(host='localhost', port=6379, db=0)
         aggregator = CandleAggregator(TIMEFRAMES, redis_client, logger)
 
@@ -39,8 +49,8 @@ class Command(BaseCommand):
                     logger.error(f"ОШИБКА В АГРЕГАТОРЕ: {type(e).__name__}: {e}")
 
         async def on_open():
-            logger.info("Подключились к biquote. Подписываемся на XAUUSD...")
-            await client.send("Subscribe", [["XAUUSD"]])
+            logger.info(f"Подключились к biquote. Подписываемся на {symbols} ...")
+            await client.send("Subscribe", [symbols])
 
         client.on("ReceiveTick", on_tick)
         client.on_open(on_open)
