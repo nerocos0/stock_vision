@@ -1,12 +1,13 @@
-import { fetchInstruments, fetchCandles, fetchIndicator, addFavorite, removeFavorite, fetchFavorites, fetchSummary, reorderFavorites } from './api.js';
+import { fetchInstruments, fetchCandles, fetchCurrentCandle, fetchIndicator, addFavorite, removeFavorite, fetchFavorites, fetchSummary, reorderFavorites } from './api.js';
 import { initAuthUI } from './auth.js';
-import { showToast } from './utils.js';
+import { showToast, toUnixSeconds } from './utils.js';
 
 // ==========================================
 // 1. КОНСТАНТЫ И СОСТОЯНИЕ (STATE)
 // ==========================================
 const DEFAULT_SYMBOL = 'EURUSD';
 const DEFAULT_TIMEFRAME = '1h';
+const WS_RECONNECT_DELAY = 3000;
 
 const state = {
     symbol: DEFAULT_SYMBOL,
@@ -23,53 +24,36 @@ const loader = document.getElementById('loader');
 
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
 
-// ============================================
-// WEBSOCKET ДЛЯ REAL-TIME СВЕЧЕЙ
-// ============================================
-let candleWs = null;
-let reconnectTimer = null;
+// Счётчик загрузок: нужен, чтобы устаревшие ответы не перезаписывали график
+let loadId = 0;
+// Время последнего бара на графике (чтобы не вызывать candleSeries.data() на каждый тик)
+let lastBarTime = 0;
 
-function connectCandleWebSocket() {
-    clearTimeout(reconnectTimer);
+// ==========================================
+// 2. ВРЕМЯ
+// ==========================================
+function formatTick(time) {
+    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
 
-    if (candleWs) {
-        const old = candleWs;
-        candleWs = null;
-        old.onclose = null;
-        old.onmessage = null;
-        old.close();
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${protocol}://${window.location.host}/ws/candle/${state.symbol}/${state.timeframe}/`;
-    const ws = new WebSocket(url);
-    candleWs = ws;
-
-    ws.onmessage = (event) => {
-        try {
-            const candle = JSON.parse(event.data);
-            candleSeries.update({
-                time: toUnixSeconds(candle.time),
-                open: parseFloat(candle.open),
-                high: parseFloat(candle.high),
-                low: parseFloat(candle.low),
-                close: parseFloat(candle.close),
-            });
-        } catch (e) {
-            console.error("Ошибка парсинга WebSocket-сообщения:", e, event.data);
-        }
-    };
-
-    ws.onerror = (error) => console.error("Ошибка WebSocket:", error);
-
-    ws.onclose = () => {
-        if (candleWs !== ws) return;
-        reconnectTimer = setTimeout(connectCandleWebSocket, 3000);
-    };
+function formatCrosshairTime(time) {
+    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
+    const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    const dayOfWeek = days[date.getUTCDay()];
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = months[date.getUTCMonth()];
+    const year = String(date.getUTCFullYear()).slice(-2);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
 }
 
 // ==========================================
-// 2. ИНИЦИАЛИЗАЦИЯ ГРАФИКА
+// 3. ИНИЦИАЛИЗАЦИЯ ГРАФИКА
 // ==========================================
 const chartContainer = document.getElementById('chart-container');
 const chart = LightweightCharts.createChart(chartContainer, {
@@ -77,40 +61,23 @@ const chart = LightweightCharts.createChart(chartContainer, {
     height: chartContainer.clientHeight,
     layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
     grid: { vertLines: { color: '#2B2B43' }, horzLines: { color: '#2B2B43' } },
-    timeScale: { 
+    timeScale: {
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 100,
-        tickMarkFormatter: (time) => {
-            const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-            const hours = String(date.getUTCHours()).padStart(2, '0');
-            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-            return `${hours}:${minutes}`;
-        }
+        tickMarkFormatter: formatTick,
     },
     localization: {
-        timeFormatter: (time) => {
-            const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-            const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-            const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-            const dayOfWeek = days[date.getUTCDay()];
-            const day = String(date.getUTCDate()).padStart(2, '0');
-            const month = months[date.getUTCMonth()];
-            const year = String(date.getUTCFullYear()).slice(-2);
-            const hours = String(date.getUTCHours()).padStart(2, '0');
-            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-            return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
-        }
+        timeFormatter: formatCrosshairTime,
     },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
 });
 
-// Отслеживаем изменение размеров контейнера графика (вместо window.resize)
 const resizeObserver = new ResizeObserver(entries => {
     for (let entry of entries) {
-        chart.applyOptions({ 
-            width: entry.contentRect.width, 
-            height: entry.contentRect.height 
+        chart.applyOptions({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
         });
     }
 });
@@ -123,14 +90,82 @@ const candleSeries = chart.addCandlestickSeries({
 
 const emaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2 });
 const smaSeries = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
-const macdSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, priceScaleId: 'macd'});
+const macdSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, priceScaleId: 'macd' });
 const rsiSeries = chart.addLineSeries({ color: '#7E57C2', lineWidth: 2, priceScaleId: 'rsi' });
 
 updateOscillatorScales();
 
+// ============================================
+// 4. WEBSOCKET ДЛЯ REAL-TIME СВЕЧЕЙ
+// ============================================
+let candleWs = null;
+let reconnectTimer = null;
+let needsHistoryReload = false;   // true, если сокет оборвался и нужно перезагрузить историю
+
+function closeCandleWebSocket() {
+    clearTimeout(reconnectTimer);
+    if (candleWs) {
+        const old = candleWs;
+        candleWs = null;      // старый сокет больше не актуален
+        old.onopen = null;
+        old.onclose = null;   // его onclose ничего не планирует
+        old.onmessage = null;
+        old.onerror = null;
+        old.close();
+    }
+}
+
+function connectCandleWebSocket() {
+    closeCandleWebSocket();
+
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${protocol}://${window.location.host}/ws/candle/${state.symbol}/${state.timeframe}/`;
+    const ws = new WebSocket(url);
+    candleWs = ws;
+
+    ws.onopen = () => {
+        if (candleWs !== ws) return;
+        // После обрыва могла закрыться свеча — подтягиваем актуальную историю
+        if (needsHistoryReload) {
+            needsHistoryReload = false;
+            updateChart();
+        }
+    };
+
+    ws.onmessage = (event) => {
+        if (candleWs !== ws) return;
+        try {
+            const candle = JSON.parse(event.data);
+            const formattedCandle = {
+                time: toUnixSeconds(candle.time),
+                open: parseFloat(candle.open),
+                high: parseFloat(candle.high),
+                low: parseFloat(candle.low),
+                close: parseFloat(candle.close),
+            };
+
+            // Запоздавший тик из прошлого — пропускаем
+            if (formattedCandle.time < lastBarTime) return;
+
+            candleSeries.update(formattedCandle);
+            lastBarTime = formattedCandle.time;
+        } catch (e) {
+            console.error("Ошибка обработки WebSocket-сообщения:", e, event.data);
+        }
+    };
+
+    ws.onerror = (error) => console.error("Ошибка WebSocket:", error);
+
+    ws.onclose = () => {
+        if (candleWs !== ws) return;   // закрыли намеренно или сокет уже заменён
+        console.log(`WebSocket закрыт. Переподключение через ${WS_RECONNECT_DELAY / 1000} секунды...`);
+        needsHistoryReload = true;
+        reconnectTimer = setTimeout(connectCandleWebSocket, WS_RECONNECT_DELAY);
+    };
+}
 
 // ==========================================
-// 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ==========================================
 function getDateRange(timeframe) {
     const now = new Date();
@@ -146,20 +181,25 @@ function getDateRange(timeframe) {
     return { fromDate, toDate };
 }
 
-function toUnixSeconds(t) {
-    if (typeof t === 'number') return t;
-    if (/^\d+$/.test(t)) return Number(t);
-    return Math.floor(Date.parse(t.replace(' ', 'T') + 'Z') / 1000);
-}
-
 // ==========================================
-// 4. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ
+// 6. ЗАГРУЗКА И ОТРИСОВКА ДАННЫХ
 // ==========================================
 async function updateChart() {
+    const myId = ++loadId;
+    closeCandleWebSocket();   // пока грузится история, старый сокет не должен трогать график
+
+    // Локальные копии: если во время загрузки пользователь переключится, берём то, что было на старте
+    const symbol = state.symbol;
+    const timeframe = state.timeframe;
+
     try {
         loader.classList.add('visible');
-        const { fromDate, toDate } = getDateRange(state.timeframe);
-        const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
+        const { fromDate, toDate } = getDateRange(timeframe);
+
+        // 1. История
+        const data = await fetchCandles(symbol, timeframe, fromDate, toDate);
+        if (myId !== loadId) return;
+
         const dataArray = Array.isArray(data) ? data : data.results;
         const formattedData = dataArray.map(candle => ({
             time: Math.floor(new Date(candle.datetime).getTime() / 1000),
@@ -168,6 +208,20 @@ async function updateChart() {
             low: parseFloat(candle.low_price),
             close: parseFloat(candle.close_price),
         }));
+
+        // 2. Текущая свеча из Redis
+        const currentCandle = await fetchCurrentCandle(symbol, timeframe);
+        if (myId !== loadId) return;
+
+        // 3. Слияние: время в setData должно строго возрастать
+        if (currentCandle) {
+            const last = formattedData[formattedData.length - 1];
+            if (!last || currentCandle.time > last.time) {
+                formattedData.push(currentCandle);
+            } else if (currentCandle.time === last.time) {
+                formattedData[formattedData.length - 1] = currentCandle;   // Redis свежее БД
+            }
+        }
 
         // Динамическая точность цен
         if (formattedData.length > 0) {
@@ -183,14 +237,16 @@ async function updateChart() {
         }
 
         candleSeries.setData(formattedData);
+        lastBarTime = formattedData.length > 0 ? formattedData[formattedData.length - 1].time : 0;
 
+        // 4. WebSocket подключаем только после setData
+        needsHistoryReload = false;
         connectCandleWebSocket();
 
-        candleSeries.priceScale().applyOptions({
-            autoScale: true,
-        });
+        candleSeries.priceScale().applyOptions({ autoScale: true });
 
         await updateAllActiveIndicators();
+        if (myId !== loadId) return;
 
         requestAnimationFrame(() => {
             const visibleBars = 150;
@@ -205,35 +261,14 @@ async function updateChart() {
                 chart.timeScale().fitContent();
             }
         });
-        
+
     } catch (error) {
+        if (myId !== loadId) return;
         console.error("Ошибка при обновлении графика:", error);
         showToast('Ошибка загрузки графика', 'error');
     } finally {
-        loader.classList.remove('visible');
-    }
-}
-
-async function fetchLatestCandle() {
-    try {
-        const { toDate } = getDateRange(state.timeframe);
-        const fromDate = toDate.split(' ')[0];
-        const data = await fetchCandles(state.symbol, state.timeframe, fromDate, toDate);
-        const dataArray = Array.isArray(data) ? data : data.results;
-        
-        if (dataArray && dataArray.length > 0) {
-            const lastCandle = dataArray[dataArray.length - 1];
-            const formattedCandle = {
-                time: Math.floor(new Date(lastCandle.datetime).getTime() / 1000),
-                open: parseFloat(lastCandle.open_price),
-                high: parseFloat(lastCandle.high_price),
-                low: parseFloat(lastCandle.low_price),
-                close: parseFloat(lastCandle.close_price),
-            };
-            candleSeries.update(formattedCandle);
-        }
-    } catch (error) {
-        console.error("Ошибка автообновления:", error);
+        // Лоадер убирает только актуальная загрузка
+        if (myId === loadId) loader.classList.remove('visible');
     }
 }
 
@@ -252,9 +287,11 @@ async function updateIndicator(type) {
         return;
     }
 
+    const myId = loadId;
     try {
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const data = await fetchIndicator(state.symbol, state.timeframe, type, config.period, fromDate, toDate);
+        if (myId !== loadId) return;   // график уже перезагружается для другого инструмента/таймфрейма
         series.setData(data);
     } catch (error) {
         console.error(`Ошибка загрузки ${type}:`, error);
@@ -289,13 +326,13 @@ function updateOscillatorScales() {
 }
 
 // ==========================================
-// 5. ИНИЦИАЛИЗАЦИЯ ИНСТРУМЕНТОВ (СЕЛЕКТ)
+// 7. ИНИЦИАЛИЗАЦИЯ ИНСТРУМЕНТОВ (СЕЛЕКТ)
 // ==========================================
 async function initInstruments() {
     try {
         const data = await fetchInstruments();
         const select = document.getElementById('symbol-select');
-        select.innerHTML = ''; 
+        select.innerHTML = '';
         data.results.forEach(inst => {
             const option = document.createElement('option');
             option.value = inst.code;
@@ -309,23 +346,23 @@ async function initInstruments() {
 }
 
 // ==========================================
-// 6. ИЗБРАННОЕ (КНОПКА В ШАПКЕ)
+// 8. ИЗБРАННОЕ (КНОПКА В ШАПКЕ)
 // ==========================================
 async function updateFavoriteButton() {
     const favBtn = document.getElementById('fav-btn');
     const token = localStorage.getItem('access_token');
-    
-    if (!token) { 
-        favBtn.style.display = 'none'; 
-        return; 
+
+    if (!token) {
+        favBtn.style.display = 'none';
+        return;
     }
-    
+
     favBtn.style.display = 'flex';
-    
+
     try {
         const favoritesData = await fetchFavorites();
         const favorite = favoritesData.results.find(fav => fav.instrument_code === state.symbol);
-        
+
         if (favorite) {
             favBtn.innerHTML = '★';
             favBtn.classList.add('active');
@@ -351,7 +388,7 @@ async function updateFavoriteButton() {
 }
 
 // ==========================================
-// 7. WATCHLIST (СПИСОК ИЗБРАННОГО)
+// 9. WATCHLIST (СПИСОК ИЗБРАННОГО)
 // ==========================================
 async function updateWatchlist() {
     const container = document.getElementById('watchlist-items');
@@ -364,7 +401,7 @@ async function updateWatchlist() {
 
     try {
         const data = await fetchFavorites();
-        container.innerHTML = ''; 
+        container.innerHTML = '';
 
         if (data.results.length === 0) {
             container.innerHTML = '<p style="color: #787b86; font-size: 14px; padding: 10px;">Список пуст</p>';
@@ -378,10 +415,12 @@ async function updateWatchlist() {
         }
 
         data.results.forEach(fav => {
+            const favId = String(fav.id);   // dataTransfer и dataset всегда отдают строки
+
             const btn = document.createElement('div');
             btn.className = 'watchlist-item';
             btn.draggable = true;
-            btn.dataset.id = fav.id;
+            btn.dataset.id = favId;
             if (fav.instrument_code === state.symbol) btn.classList.add('active');
 
             const info = summaryMap[fav.instrument_code] || {};
@@ -395,7 +434,7 @@ async function updateWatchlist() {
                     <div class="wl-price">${price}</div>
                     <div class="wl-change ${isUp ? 'up' : 'down'}">${isUp ? '+' : ''}${change}%</div>
                 </div>
-                <button class="wl-delete" data-id="${fav.id}">✕</button>
+                <button class="wl-delete" data-id="${favId}">✕</button>
             `;
 
             // Клик по элементу (переключение графика)
@@ -421,7 +460,7 @@ async function updateWatchlist() {
 
             // Drag-and-drop
             btn.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', fav.id);
+                e.dataTransfer.setData('text/plain', favId);
                 e.dataTransfer.effectAllowed = 'move';
                 setTimeout(() => btn.classList.add('dragging'), 0);
             });
@@ -434,23 +473,24 @@ async function updateWatchlist() {
                 e.preventDefault();
                 btn.classList.remove('drag-over');
                 const draggedId = e.dataTransfer.getData('text/plain');
-                if (draggedId === fav.id) return;
+                if (draggedId === favId) return;
 
                 const items = Array.from(container.children);
                 const draggedIndex = items.findIndex(item => item.dataset.id === draggedId);
-                const targetIndex = items.findIndex(item => item.dataset.id === fav.id);
+                const targetIndex = items.findIndex(item => item.dataset.id === favId);
+                if (draggedIndex === -1 || targetIndex === -1) return;
 
                 if (draggedIndex < targetIndex) {
-                    container.insertBefore(container.children[draggedIndex], btn.nextSibling);
+                    container.insertBefore(items[draggedIndex], btn.nextSibling);
                 } else {
-                    container.insertBefore(container.children[draggedIndex], btn);
+                    container.insertBefore(items[draggedIndex], btn);
                 }
 
                 const newOrder = Array.from(container.children).map((item, index) => ({
                     id: parseInt(item.dataset.id),
                     order: index
                 }));
-                
+
                 try {
                     await reorderFavorites(newOrder);
                 } catch (error) {
@@ -475,7 +515,7 @@ function setupResizer() {
     resizer.addEventListener('mousedown', () => {
         isResizing = true;
         document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none'; 
+        document.body.style.userSelect = 'none';
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -497,7 +537,7 @@ function setupResizer() {
 }
 
 // ==========================================
-// 8. ОБРАБОТЧИКИ СОБЫТИЙ
+// 10. ОБРАБОТЧИКИ СОБЫТИЙ
 // ==========================================
 function setupEventListeners() {
     document.querySelectorAll('.tf-btn').forEach(button => {
@@ -512,32 +552,13 @@ function setupEventListeners() {
     document.getElementById('timezone-select').addEventListener('change', (event) => {
         currentTimezoneOffset = parseInt(event.target.value);
         localStorage.setItem('timezoneOffset', event.target.value);
-        
+
+        // Форматтеры читают currentTimezoneOffset при вызове,
+        // applyOptions нужен, чтобы график перерисовал подписи
         chart.applyOptions({
-            timeScale: {
-                tickMarkFormatter: (time) => {
-                    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-                    const hours = String(date.getUTCHours()).padStart(2, '0');
-                    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-                    return `${hours}:${minutes}`;
-                }
-            },
-            localization: {
-                timeFormatter: (time) => {
-                    const date = new Date((time + currentTimezoneOffset * 3600) * 1000);
-                    const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-                    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-                    const dayOfWeek = days[date.getUTCDay()];
-                    const day = String(date.getUTCDate()).padStart(2, '0');
-                    const month = months[date.getUTCMonth()];
-                    const year = String(date.getUTCFullYear()).slice(-2);
-                    const hours = String(date.getUTCHours()).padStart(2, '0');
-                    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-                    return `${dayOfWeek} ${day} ${month} '${year}  ${hours}:${minutes}`;
-                }
-            }
+            timeScale: { tickMarkFormatter: formatTick },
+            localization: { timeFormatter: formatCrosshairTime },
         });
-        chart.applyOptions({});
     });
 
     document.getElementById('symbol-select').addEventListener('change', (event) => {
@@ -551,25 +572,25 @@ function setupEventListeners() {
     document.getElementById('export-btn').addEventListener('click', () => {
         const { fromDate, toDate } = getDateRange(state.timeframe);
         const url = `/api/candles/export/?symbol=${state.symbol}&timeframe=${state.timeframe}&from=${fromDate}&to=${toDate}`;
-        
+
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', '');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         showToast('Начинается скачивание CSV...', 'info');
     });
 
     const dropBtn = document.getElementById('indicator-btn');
     const dropMenu = document.querySelector('.indicator-dropdown');
-    
+
     dropBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         dropMenu.classList.toggle('open');
     });
-    
+
     document.addEventListener('click', (e) => {
         if (!dropMenu.contains(e.target)) dropMenu.classList.remove('open');
     });
@@ -591,10 +612,10 @@ function setupEventListeners() {
                 if (isNaN(val) || val < 2) val = 2;
                 if (val > 200) val = 200;
                 e.target.value = val;
-                
+
                 state.indicators[type].period = val;
                 saveIndicatorSettings();
-                
+
                 if (state.indicators[type].enabled) {
                     updateIndicator(type);
                 }
@@ -602,12 +623,13 @@ function setupEventListeners() {
         }
     });
 }
+
 function saveIndicatorSettings() {
     localStorage.setItem('indicatorSettings', JSON.stringify(state.indicators));
 }
 
 // ==========================================
-// 9. ТОЧКА ВХОДА
+// 11. ТОЧКА ВХОДА
 // ==========================================
 async function init() {
     const savedIndicators = localStorage.getItem('indicatorSettings');
@@ -629,11 +651,11 @@ async function init() {
             console.error("Ошибка парсинга настроек индикаторов", e);
         }
     }
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const symbolFromUrl = urlParams.get('symbol');
     if (symbolFromUrl) state.symbol = symbolFromUrl;
-    
+
     const savedOffset = localStorage.getItem('timezoneOffset');
     if (savedOffset) {
         currentTimezoneOffset = parseInt(savedOffset);
@@ -650,7 +672,6 @@ async function init() {
     await updateWatchlist();
     setupResizer();
     updateOscillatorScales();
-    
 }
 
 init();

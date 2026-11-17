@@ -1,3 +1,5 @@
+import { toUnixSeconds } from './utils.js';
+
 //  Базовые URL-адреса нашего API
 const API_BASE = '/api';
 
@@ -100,4 +102,22 @@ export async function reorderFavorites(items) {
     });
     if (!response.ok) throw new Error('Ошибка сохранения порядка');
     return await response.json();
+}
+
+export async function fetchCurrentCandle(symbol, timeframe) {
+    try {
+        const resp = await fetch(`/api/candles/current/?symbol=${symbol}&timeframe=${timeframe}`);
+        if (!resp.ok) return null;
+        const c = await resp.json();
+        return {
+            time: toUnixSeconds(c.time),
+            open: parseFloat(c.open),
+            high: parseFloat(c.high),
+            low: parseFloat(c.low),
+            close: parseFloat(c.close),
+        };
+    } catch (e) {
+        console.warn("Не удалось загрузить текущую свечу:", e);
+        return null;
+    }
 }

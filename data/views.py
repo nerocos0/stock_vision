@@ -14,6 +14,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from datetime import datetime, UTC
 from django.utils import timezone
+from calendar import timegm
 from django.utils.dateparse import parse_datetime, parse_date
 from dateutil.relativedelta import relativedelta
 
@@ -32,6 +33,8 @@ INDICATORS_MAP = {
 
 
 logger = logging.getLogger(__name__)
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 
 class DateParseMixin:
@@ -125,19 +128,20 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def current(self, request):
-        symbol = self.request.query_params.get('symbol')
+        symbol = request.query_params.get('symbol')
         timeframe = request.query_params.get('timeframe')
 
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        if not symbol or not timeframe:
+            return Response({"detail": "Нужны symbol и timeframe"}, status=status.HTTP_400_BAD_REQUEST)
 
-        redis_key = f"candle:{symbol}:{timeframe}"
-        raw = redis_client.get(redis_key)
-        if raw is not None:
-            logger.debug(f"ВЗЯЛИ ИЗ КЭША: {redis_key}")
-            candle = json.loads(raw)
-            return Response(candle)
-        
-        return Response({"detail": "Нет данных"}, status=status.HTTP_404_NOT_FOUND)
+        raw = redis_client.get(f"candle:{symbol}:{timeframe}")
+        if raw is None:
+            return Response({"detail": "Нет данных"}, status=status.HTTP_404_NOT_FOUND)
+
+        candle = json.loads(raw)
+        dt = datetime.strptime(candle["time"], "%Y-%m-%d %H:%M:%S")
+        candle["time"] = timegm(dt.timetuple())
+        return Response(candle)
 
 
 class InstrumentView(ReadOnlyModelViewSet):
