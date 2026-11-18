@@ -98,9 +98,20 @@ class TwelveDataService:
             'apikey': self.api_key,
             'symbol': symbol,
         }
-        response = requests.get(url, params)
-        response.raise_for_status()
-        data = response.json()
+
+        try:
+            response = requests.get(url, params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL ошибка при запросе к Twelve Data ({symbol}): {e}")
+            return None
+        except requests.exceptions.Timeout:
+            logger.error(f"Таймаут при запросе к Twelve Data ({symbol})")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Сетевая ошибка при запросе к Twelve Data ({symbol}): {e}")
+            return None
 
         if data.get('status') != 'error':
             return {
