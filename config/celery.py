@@ -20,3 +20,10 @@ app.conf.beat_schedule = {
         'schedule': crontab(minute=0),
     },
 }
+
+app.conf.update(
+    broker_connection_retry_on_startup=True,
+    broker_connection_max_retries=None,
+    broker_connection_timeout=10,
+    result_backend_transport_options={'retry_policy': {'max_retries': 10}},
+)

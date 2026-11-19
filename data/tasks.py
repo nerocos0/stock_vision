@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 #сохранение уже закрытых свечей в бд полученных реалтайм по тикам с biquote с помощью websocets(основной источник реалтайм свечей)
-@shared_task
+@shared_task(ignore_result=True)
 def save_realtime_candle(symbol, timeframe, candle_data):
     """
     Celery задача.

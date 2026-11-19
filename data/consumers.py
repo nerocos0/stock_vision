@@ -1,3 +1,4 @@
+import os
 import json
 import asyncio
 import logging
@@ -13,7 +14,7 @@ class CandleConsumer(AsyncWebsocketConsumer):
         self.timeframe = self.scope['url_route']['kwargs']['timeframe']
 
         self.redis_client = redis.Redis(
-            host='localhost',
+            host=os.getenv('REDIS_HOST', 'localhost'),
             port=6379,
             db=0,
             health_check_interval=30,

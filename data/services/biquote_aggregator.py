@@ -43,7 +43,10 @@ class CandleAggregator():
 
     def _close_candle(self, candle, symbol, tf_name):
         self.logger.info(f"СВЕЧА {tf_name} ЗАКРЫЛАСЬ: {candle}")
-        save_realtime_candle.delay(symbol, tf_name, candle)
+        try:
+            save_realtime_candle.delay(symbol, tf_name, candle)
+        except Exception as e:
+            self.logger.error(f"Не удалось отправить задачу в Celery: {e}")
 
     async def _write_in_redis(self, candle, key, symbol, timeframe):
         candle_str = json.dumps(candle, default=str)

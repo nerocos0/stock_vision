@@ -1,0 +1,71 @@
+x-app-env: &app-env
+  POSTGRES_HOST: db
+  REDIS_HOST: redis
+  REDIS_URL: redis://redis:6379/1
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/0
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7
+    command: redis-server --maxclients 10000
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  web:
+    build: .
+    command: sh -c "python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on: [db, redis]
+    env_file: .env
+    environment:
+      <<: *app-env
+
+  celery_worker:
+    build: .
+    command: celery -A config worker -l info -P solo
+    volumes:
+      - .:/app
+    depends_on: [db, redis]
+    env_file: .env
+    environment:
+      <<: *app-env
+
+  celery_beat:
+    build: .
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    depends_on: [db, redis]
+    env_file: .env
+    environment:
+      <<: *app-env
+
+  aggregator:
+    build: .
+    command: python manage.py getting_runtime_candles
+    volumes:
+      - .:/app
+    depends_on: [db, redis]
+    env_file: .env
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+
+volumes:
+  postgres_data:

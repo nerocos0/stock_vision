@@ -1,4 +1,4 @@
-# data/management/commands/run_aggregator.py
+import os
 import asyncio
 import logging
 import redis.asyncio as redis
@@ -36,7 +36,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('Остановлено пользователем.'))
 
     async def run_aggregator(self, symbols):
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        redis_client = redis.Redis(
+            host=os.getenv('REDIS_HOST', 'localhost'),
+            port=6379,
+            db=0
+        )
         aggregator = CandleAggregator(TIMEFRAMES, redis_client, logger)
 
         client = SignalRClient("https://biquote.io/hubs/tick")
@@ -52,7 +56,11 @@ class Command(BaseCommand):
             logger.info(f"Подключились к biquote. Подписываемся на {symbols} ...")
             await client.send("Subscribe", [symbols])
 
+        async def on_subscription_state(*args):
+            logger.debug(f"Состояние подписки biquote: {args}")
+
         client.on("ReceiveTick", on_tick)
         client.on_open(on_open)
+        client.on("ReceiveSubscriptionState", on_subscription_state)
 
         await client.run()

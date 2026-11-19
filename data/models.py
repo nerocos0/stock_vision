@@ -55,7 +55,7 @@ class EconomicEvent(models.Model):
     forecast = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
     previous = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
     
-    unit = models.CharField(max_length=20, blank=True, default='')
+    unit = models.CharField(max_length=20, blank=True, null=True, default='')
 
     class Meta:
         ordering = ['-time']
