@@ -1,7 +1,68 @@
 import { toUnixSeconds } from './utils.js';
 
-//  Базовые URL-адреса нашего API
 const API_BASE = '/api';
+
+const ACCESS_KEY = 'access_token';
+const REFRESH_KEY = 'refresh_token';
+
+let refreshPromise = null;
+
+async function refreshAccessToken() {
+    if (refreshPromise) return refreshPromise;
+
+    refreshPromise = (async () => {
+        const refresh = localStorage.getItem(REFRESH_KEY);
+        if (!refresh) throw new Error('no refresh token');
+
+        const resp = await fetch(`${API_BASE}/auth/token/refresh/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh }),
+        });
+        if (!resp.ok) throw new Error('refresh failed');
+
+        const data = await resp.json();
+        localStorage.setItem(ACCESS_KEY, data.access);
+        if (data.refresh) localStorage.setItem(REFRESH_KEY, data.refresh);
+        return data.access;
+    })();
+
+    try {
+        return await refreshPromise;
+    } finally {
+        refreshPromise = null;
+    }
+}
+
+function forceLogout() {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    window.dispatchEvent(new Event('auth:logout'));
+}
+
+export async function authFetch(url, options = {}) {
+    const doRequest = (token) => {
+        const headers = new Headers(options.headers || {});
+        if (token) headers.set('Authorization', `Bearer ${token}`);
+        return fetch(url, { ...options, headers });
+    };
+
+    let resp = await doRequest(localStorage.getItem(ACCESS_KEY));
+
+    if (resp.status === 401) {
+        if (!localStorage.getItem(REFRESH_KEY)) {
+            forceLogout();
+            return resp;
+        }
+        try {
+            const newToken = await refreshAccessToken();
+            resp = await doRequest(newToken);
+        } catch (e) {
+            forceLogout();
+        }
+    }
+    return resp;
+}
 
 //получить список доступных инструментов
 export async function fetchInstruments() {
@@ -41,44 +102,36 @@ export async function loginUser(username, password) {
     return await response.json(); // Вернет { access: "...", refresh: "..." }
 }
 
-// Добавить в избранное
 export async function addFavorite(instrumentId) {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE}/auth/favorites/`, {
+    const response = await authFetch(`${API_BASE}/auth/favorites/`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instrument: instrumentId })
     });
     if (!response.ok) throw new Error('Ошибка добавления в избранное');
     return await response.json();
 }
 
-// Удалить из избранного
 export async function removeFavorite(favoriteId) {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE}/auth/favorites/${favoriteId}/`, {
+    const response = await authFetch(`${API_BASE}/auth/favorites/${favoriteId}/`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) throw new Error('Ошибка удаления из избранного');
 }
 
-// Получить список избранного текущего пользователя
 export async function fetchFavorites() {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE}/auth/favorites/`, {
-        headers: { 
-            'Authorization': `Bearer ${token}` 
-        }
+    const response = await authFetch(`${API_BASE}/auth/favorites/`);
+    if (!response.ok) throw new Error('Ошибка загрузки избранного');
+    return await response.json();
+}
+
+export async function reorderFavorites(items) {
+    const response = await authFetch(`${API_BASE}/auth/favorites/reorder/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
     });
-    
-    if (!response.ok) {
-        throw new Error('Ошибка загрузки избранного');
-    }
-    
+    if (!response.ok) throw new Error('Ошибка сохранения порядка');
     return await response.json();
 }
 
@@ -87,20 +140,6 @@ export async function fetchIndicator(symbol, timeframe, type, period, fromDate, 
     const url = `${API_BASE}/indicators/?symbol=${symbol}&timeframe=${timeframe}&type=${type}&period=${period}&from=${fromDate}&to=${toDate}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Ошибка загрузки индикатора');
-    return await response.json();
-}
-
-export async function reorderFavorites(items) {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE}/auth/favorites/reorder/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ items })
-    });
-    if (!response.ok) throw new Error('Ошибка сохранения порядка');
     return await response.json();
 }
 

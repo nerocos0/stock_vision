@@ -1,22 +1,18 @@
+import { authFetch } from './api.js';
+
 export async function initAuthUI() {
     const authContainer = document.getElementById('auth-buttons');
     if (!authContainer) return;
 
-    const token = localStorage.getItem('access_token');
-
-    if (!token) {
+    if (!localStorage.getItem('access_token')) {
         renderLoginButton(authContainer);
         return;
     }
 
     try {
-        const response = await fetch('/api/auth/favorites/', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await authFetch('/api/auth/favorites/');
 
         if (response.status === 401) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
             renderLoginButton(authContainer);
         } else {
             renderLogoutButton(authContainer);
@@ -26,6 +22,12 @@ export async function initAuthUI() {
         renderLogoutButton(authContainer);
     }
 }
+
+window.addEventListener('auth:logout', () => {
+    const authContainer = document.getElementById('auth-buttons');
+    if (authContainer) renderLoginButton(authContainer);
+    location.reload();
+});
 
 function renderLoginButton(container) {
     container.innerHTML = `<a href="/auth/" class="auth-btn">Войти</a>`;

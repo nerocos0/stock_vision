@@ -255,7 +255,7 @@ class IndicatorView(DateParseMixin, APIView):
 
             result.append({
                 'time': timestamp,
-                'value': round(value, 4),
+                'value': round(value, 6),
             })
 
         return result
