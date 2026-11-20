@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
 from django.shortcuts import redirect
-from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 #импорты для работы с почтой
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -17,6 +18,7 @@ from django.contrib.auth.tokens import default_token_generator
 from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from .models import FavoriteInstrument
 from data.models import Instrument
+from django.contrib.auth.models import User
 from .tasks import send_verification_email_task, send_password_reset_email_task
 
 class RegisterView(generics.CreateAPIView):
@@ -98,7 +100,17 @@ class ChangePasswordView(APIView):
         
         if serializer.is_valid():
             serializer.save()
-            return Response({"detail": "Пароль успешно изменен"}, status=status.HTTP_200_OK)
+            
+            for token in OutstandingToken.objects.filter(user=request.user):
+                BlacklistedToken.objects.get_or_create(token=token)
+
+            refresh = RefreshToken.for_user(request.user)
+
+            return Response({
+                'detail': 'Пароль успешно изменен',
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            }, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

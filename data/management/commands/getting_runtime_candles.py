@@ -4,6 +4,7 @@ import logging
 import redis.asyncio as redis
 from django.core.management.base import BaseCommand
 from pysignalr.client import SignalRClient
+from pysignalr.exceptions import NegotiationFailure
 
 from data.services.biquote_aggregator import CandleAggregator
 from data.models import Instrument
@@ -43,7 +44,12 @@ class Command(BaseCommand):
         )
         aggregator = CandleAggregator(TIMEFRAMES, redis_client, logger)
 
-        client = SignalRClient("https://biquote.io/hubs/tick")
+        client = SignalRClient(
+            "https://biquote.io/hubs/tick",
+            retry_sleep=5,
+            retry_multiplier=2,
+            retry_count=5,
+        )
 
         async def on_tick(tick_data):
             for tick in tick_data:
@@ -63,4 +69,10 @@ class Command(BaseCommand):
         client.on_open(on_open)
         client.on("ReceiveSubscriptionState", on_subscription_state)
 
-        await client.run()
+        while True:
+            try:
+                await client.run()
+            except NegotiationFailure as e:
+                logger.error(f"Не удалось подключиться к biquote (429?): {e}")
+                logger.info("Жду 60 секунд перед повторной попыткой...")
+                await asyncio.sleep(60)

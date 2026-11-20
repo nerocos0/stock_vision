@@ -83,7 +83,11 @@ form.addEventListener('submit', async (event) => {
             throw new Error(errorText);
         }
 
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+
         showToast('Пароль успешно изменен!', 'success');
+        form.reset();
         btnCancelPassword.click();
         
     } catch (error) {
