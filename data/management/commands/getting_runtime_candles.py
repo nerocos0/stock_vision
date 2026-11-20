@@ -49,6 +49,8 @@ class Command(BaseCommand):
             retry_sleep=5,
             retry_multiplier=2,
             retry_count=5,
+            signalr_ping_interval=10,
+            ping_interval=10
         )
 
         async def on_tick(tick_data):
