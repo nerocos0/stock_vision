@@ -475,12 +475,81 @@ button { font-family: inherit; }
 .profile-card h2 { color: white; margin-top: 0; margin-bottom: 20px; }
 .profile-info { font-size: 16px; margin-bottom: 10px; }
 .profile-info strong { color: white; }
-.profile-actions .btn-submit, .profile-actions .auth-btn { width: auto; padding: 12px 24px; }
-.profile-actions #btn-show-email { background: #2B2B43; border-color: #2B2B43; color: white; }
-.profile-actions #btn-show-email:hover { background: #2962FF; border-color: #2962FF; }
-.profile-card .auth-btn { background: transparent; border-color: #2B2B43; color: #787b86; }
-.profile-card .auth-btn:hover { background: #2B2B43; color: white; }
 
+/* Контейнер для кнопок в профиле */
+.profile-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-bottom: 0px;
+    margin-top: 30px;
+}
+
+.profile-actions .btn-submit,
+.profile-actions .auth-btn {
+    width: auto;
+    padding: 12px 24px;
+    transition: all 0.2s;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.profile-actions .btn-active {
+    background: #2962FF;
+    border: 1px solid #2962FF;
+    color: white;
+}
+
+.profile-actions .btn-inactive {
+    background: transparent;
+    border: 1px solid #2B2B43;
+    color: #d1d4dc;
+}
+
+.profile-actions .btn-inactive:hover {
+    background: #2B2B43;
+    color: white;
+}
+
+.profile-card .auth-btn {
+    background: transparent;
+    border-color: #2B2B43;
+    color: #787b86;
+}
+
+.profile-card .auth-btn:hover {
+    background: #2B2B43;
+    color: white;
+}
+
+.profile-btn {
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    width: auto;
+}
+
+.profile-btn.btn-active {
+    background: #2962FF;
+    border-color: #2962FF;
+    color: white;
+}
+
+.profile-btn.btn-inactive {
+    background: transparent;
+    border-color: #2B2B43;
+    color: #d1d4dc;
+}
+
+.profile-btn.btn-inactive:hover {
+    background: #2B2B43;
+    color: white;
+}
 /* =========================================
    11. МОДАЛЬНОЕ ОКНО
    ========================================= */

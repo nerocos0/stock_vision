@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema
 from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from django.utils import timezone
 
 #импорты для работы с почтой
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -16,10 +17,10 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 
 from .serializers import RegisterSerializer, FavoriteInstrumentSerializer, ChangePasswordSerializer, ChangeEmailSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
-from .models import FavoriteInstrument
+from .models import FavoriteInstrument, EmailChangeRequest
 from data.models import Instrument
 from django.contrib.auth.models import User
-from .tasks import send_verification_email_task, send_password_reset_email_task
+from .tasks import send_verification_email_task, send_password_reset_email_task, send_email_change_task
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -136,18 +137,53 @@ class VerifyEmailView(APIView):
 class ChangeEmailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        request=ChangeEmailSerializer,
-        responses={200: None, 400: None}
-    )
+    @extend_schema(request=ChangeEmailSerializer, responses={200: None, 400: None})
     def post(self, request):
         serializer = ChangeEmailSerializer(data=request.data, context={'request': request})
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"detail": "Почта успешно изменена"}, status=status.HTTP_200_OK)
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        new_email = serializer.validated_data['new_email']
+
+        change_request = EmailChangeRequest.objects.create(
+            user=user,
+            old_email=user.email,
+            new_email=new_email,
+        )
+
+        verify_url = f"http://127.0.0.1:8000/api/auth/confirm-email-change/{user.id}/{change_request.token}/"
+
+        send_email_change_task.delay(user.email, new_email, verify_url)
+
+        return Response({"detail": "Письмо отправлено на новый email. Проверьте почту."})
+
+
+class ConfirmEmailChangeView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, uid, token):
+        try:
+            user = User.objects.get(pk=uid)
+            change_request = EmailChangeRequest.objects.get(
+                user=user, token=token, status=EmailChangeRequest.Status.PENDING
+            )
+        except (User.DoesNotExist, EmailChangeRequest.DoesNotExist):
+            return redirect('/profile/?email_error=invalid')
+
+        if change_request.is_expired():
+            change_request.status = EmailChangeRequest.Status.EXPIRED
+            change_request.save()
+            return redirect('/profile/?email_error=expired')
+
+        user.email = change_request.new_email
+        user.save()
+
+        change_request.status = EmailChangeRequest.Status.CONFIRMED
+        change_request.confirmed_at = timezone.now()
+        change_request.save()
+
+        return redirect('/auth/?email_changed=1')
 
 
 class PasswordResetRequestView(APIView):

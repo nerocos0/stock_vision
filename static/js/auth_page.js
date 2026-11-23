@@ -10,6 +10,10 @@ if (urlParams.has('verified')) {
     showToast('Ссылка подтверждения недействительна или устарела.', 'error');
     window.history.replaceState({}, document.title, "/auth/");
 }
+if (urlParams.has('email_changed')) {
+    showToast('Email успешно изменён! Войдите с новым email.', 'success');
+    window.history.replaceState({}, document.title, '/auth/');
+}
 
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
