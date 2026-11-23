@@ -75,6 +75,6 @@ class Command(BaseCommand):
             try:
                 await client.run()
             except NegotiationFailure as e:
-                logger.error(f"Не удалось подключиться к biquote (429?): {e}")
+                logger.error(f"Не удалось подключиться к biquote: {type(e).__name__}: {e!r}")
                 logger.info("Жду 60 секунд перед повторной попыткой...")
                 await asyncio.sleep(60)
