@@ -567,23 +567,102 @@ button { font-family: inherit; }
 /* =========================================
    12. ЭКОНОМИЧЕСКИЙ КАЛЕНДАРЬ
    ========================================= */
-.table-container { overflow-x: auto; margin-top: 20px; }
+.calendar-page {
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
 .calendar-table {
-    width: 100%; border-collapse: collapse;
-    background: #1e222d; border-radius: 8px;
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e222d;
+    border-radius: 8px;
+    overflow: hidden;
 }
-.calendar-table th, .calendar-table td {
-    padding: 12px 15px; text-align: left; border-bottom: 1px solid #2B2B43;
+
+.calendar-table th,
+.calendar-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #2B2B43;
 }
-.calendar-table th { background: #131722; font-weight: bold; color: white; }
-.calendar-table tr:hover { background: #2B2B43; }
 
-.importance-high { border-left: 3px solid #ef5350; }
-.importance-medium { border-left: 3px solid #FF9800; }
-.importance-low { border-left: 3px solid #787b86; }
+.calendar-table th {
+    background: #131722;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
 
-.calendar-filters { display: flex; gap: 15px; margin-bottom: 15px; }
-.calendar-filters label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+.calendar-table tr:hover {
+    background: #2B2B43;
+}
+
+/* Цветовые полосы важности */
+.importance-high {
+    border-left: 3px solid #ef5350;
+}
+.importance-medium {
+    border-left: 3px solid #FF9800;
+}
+.importance-low {
+    border-left: 3px solid #787b86;
+}
+
+/* Фильтры (важность + валюта) */
+.calendar-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.calendar-filters .filter-label {
+    color: #787b86;
+    font-size: 14px;
+}
+
+.calendar-filters label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #d1d4dc;
+    font-size: 14px;
+}
+
+.calendar-filters input[type="checkbox"] {
+    accent-color: #2962FF;
+}
+
+/* Контейнер для динамических чекбоксов валют */
+.currency-filters {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.timezone-select {
+    background: #131722;
+    color: #d1d4dc;
+    border: 1px solid #2B2B43;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+.timezone-select:focus {
+    border-color: #2962FF;
+}
 
 /* =========================================
    13. ЛОАДЕР И УВЕДОМЛЕНИЯ

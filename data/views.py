@@ -267,12 +267,16 @@ class EconomicEventView(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         now = timezone.now()
-        past_events_date = now - relativedelta(days=7)
         future_events_date = now + relativedelta(days=7)
 
         queryset = EconomicEvent.objects.filter(
-            time__gte=past_events_date,
+            time__gte=now,
             time__lte=future_events_date
         ).order_by('time')
 
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def currencies(self, request):
+        currencies = EconomicEvent.objects.values_list('currency', flat=True).order_by().distinct()
+        return Response(list(currencies))

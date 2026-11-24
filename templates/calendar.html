@@ -10,25 +10,39 @@
     <a href="/" class="logo">StockVision</a>
     <div id="auth-buttons"></div>
 </header>
+<main class="calendar-page">
+    <div class="dashboard-container">
+        <h2>Экономический календарь</h2>
+        
+        <div class="calendar-filters">
+            <span class="filter-label">Важность:</span>
+            <label><input type="checkbox" id="filter-high" checked> Высокая</label>
+            <label><input type="checkbox" id="filter-medium" checked> Средняя</label>
+            <label><input type="checkbox" id="filter-low" checked> Низкая</label>
+            
+            <span class="filter-label" style="margin-left: 20px;">Валюта:</span>
+            <div id="currency-filters" class="currency-filters"></div>
 
-<div class="dashboard-container">
-    <h2>Экономический календарь</h2>
-    
-    <div class="calendar-filters">
-        <label><input type="checkbox" id="filter-high" checked> Высокая</label>
-        <label><input type="checkbox" id="filter-medium"> Средняя</label>
-        <label><input type="checkbox" id="filter-low"> Низкая</label>
-    </div>
+            <span class="filter-label" style="margin-left: 20px;">Таймзона:</span>
+            <select id="timezone-select" class="timezone-select">
+                <option value="0">UTC</option>
+                <option value="3">МСК (UTC+3)</option>
+                <option value="-5">Нью-Йорк (UTC-5)</option>
+                <option value="1">Лондон (UTC+1)</option>
+                <option value="9">Токио (UTC+9)</option>
+            </select>
+        </div>
 
-    <div class="table-container">
-        <table class="calendar-table">
-            <thead>
-                <tr><th>Время</th><th>Валюта</th><th>Событие</th><th>Факт</th><th>Прогноз</th><th>Предыдущее</th></tr>
-            </thead>
-            <tbody id="calendar-body"></tbody>
-        </table>
+        <div class="table-container">
+            <table class="calendar-table">
+                <thead>
+                    <tr><th>Время</th><th>Валюта</th><th>Событие</th><th>Факт</th><th>Прогноз</th><th>Предыдущее</th></tr>
+                </thead>
+                <tbody id="calendar-body"></tbody>
+            </table>
+        </div>
     </div>
-</div>
+</main>
 {% endblock %}
 
 {% block extra_js %}
