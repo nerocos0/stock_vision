@@ -34,6 +34,7 @@ let allCandles = [];
 let isLoadingHistory = false;
 let hasMoreHistory = true;
 let currentHistoryToDate = null;
+let lastIndicatorUpdate = 0;
 
 // ==========================================
 // 2. ВРЕМЯ
@@ -98,6 +99,13 @@ const emaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2 });
 const smaSeries = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
 const macdSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, priceScaleId: 'macd' });
 const rsiSeries = chart.addLineSeries({ color: '#7E57C2', lineWidth: 2, priceScaleId: 'rsi' });
+
+const SERIES_MAP = {
+    rsi: rsiSeries,
+    ema: emaSeries,
+    sma: smaSeries,
+    macd: macdSeries,
+};
 
 updateOscillatorScales();
 
@@ -311,21 +319,25 @@ async function loadHistory(limit = 300, toDate = null, myId = null) {
 
         allCandles = [...newCandles, ...allCandles];
 
-        currentHistoryToDate = new Date(allCandles[0].time * 1000).toISOString().split('T')[0] + ' 23:59:59';
+        const visibleRange = chart.timeScale().getVisibleLogicalRange();
 
-        if (toDate !== null) {
-            const visibleRange = chart.timeScale().getVisibleLogicalRange();
-            
-            candleSeries.setData(allCandles);
+        candleSeries.setData(allCandles);
 
-            if (visibleRange) {
-                const shift = newCandles.length;
-                chart.timeScale().setVisibleLogicalRange({
-                    from: visibleRange.from + shift,
-                    to: visibleRange.to + shift,
-                });
-            }
+        const now = Date.now();
+        if (now - lastIndicatorUpdate > 500) {
+            lastIndicatorUpdate = now;
+            await updateAllActiveIndicators();
         }
+
+        if (visibleRange && toDate !== null) {
+            const shift = newCandles.length;
+            chart.timeScale().setVisibleLogicalRange({
+                from: visibleRange.from + shift,
+                to: visibleRange.to + shift,
+            });
+        }
+
+        currentHistoryToDate = new Date(allCandles[0].time * 1000).toISOString().split('T')[0] + ' 23:59:59';
 
         if (dataArray.length < limit) {
             hasMoreHistory = false;
@@ -349,13 +361,7 @@ function setupLazyLoading() {
 }
 
 async function updateIndicator(type) {
-    const seriesMap = {
-        rsi: rsiSeries,
-        ema: emaSeries,
-        sma: smaSeries,
-        macd: macdSeries,
-    };
-    const series = seriesMap[type];
+    const series = SERIES_MAP[type];
     const config = state.indicators[type];
 
     if (!config.enabled) {
@@ -365,9 +371,21 @@ async function updateIndicator(type) {
 
     const myId = loadId;
     try {
-        const { fromDate, toDate } = getDateRange(state.timeframe);
+        let fromDate, toDate;
+        if (allCandles.length > 0) {
+            const first = new Date(allCandles[0].time * 1000);
+            const last = new Date(allCandles[allCandles.length - 1].time * 1000);
+            fromDate = first.toISOString().split('T')[0];
+            toDate = last.toISOString().split('T')[0] + ' 23:59:59';
+        } else {
+            const range = getDateRange(state.timeframe);
+            fromDate = range.fromDate;
+            toDate = range.toDate;
+        }
+
         const data = await fetchIndicator(state.symbol, state.timeframe, type, config.period, fromDate, toDate);
-        if (myId !== loadId) return;   // график уже перезагружается для другого инструмента/таймфрейма
+        if (myId !== loadId) return;
+
         series.setData(data);
     } catch (error) {
         console.error(`Ошибка загрузки ${type}:`, error);
