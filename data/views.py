@@ -92,7 +92,7 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
         timeframe = self.request.query_params.get('timeframe')
         from_str = self.request.query_params.get('from')
         to_str = self.request.query_params.get('to')
-        limit = request.query_params.get('limit', '0')
+        limit = int(self.request.query_params.get('limit', 0))
         
         cache_key = f'candles:{symbol}:{timeframe}:{from_str}:{to_str}:{limit}'
 

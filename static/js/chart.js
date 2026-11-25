@@ -24,10 +24,16 @@ const loader = document.getElementById('loader');
 
 let currentTimezoneOffset = parseInt(localStorage.getItem('timezoneOffset') || '0');
 
-// Счётчик загрузок: нужен, чтобы устаревшие ответы не перезаписывали график
 let loadId = 0;
-// Время последнего бара на графике (чтобы не вызывать candleSeries.data() на каждый тик)
 let lastBarTime = 0;
+
+// ==========================================
+// ЛЕНИВАЯ ЗАГРУЗКА
+// ==========================================
+let allCandles = [];
+let isLoadingHistory = false;
+let hasMoreHistory = true;
+let currentHistoryToDate = null;
 
 // ==========================================
 // 2. ВРЕМЯ
@@ -186,46 +192,35 @@ function getDateRange(timeframe) {
 // ==========================================
 async function updateChart() {
     const myId = ++loadId;
-    closeCandleWebSocket();   // пока грузится история, старый сокет не должен трогать график
+    closeCandleWebSocket();
 
-    // Локальные копии: если во время загрузки пользователь переключится, берём то, что было на старте
     const symbol = state.symbol;
     const timeframe = state.timeframe;
 
     try {
         loader.classList.add('visible');
-        const { fromDate, toDate } = getDateRange(timeframe);
 
-        // 1. История
-        const data = await fetchCandles(symbol, timeframe, fromDate, toDate, 300);
+        allCandles = [];
+        hasMoreHistory = true;
+        currentHistoryToDate = null;
+
+        await loadHistory(300, null, myId);
         if (myId !== loadId) return;
 
-        const dataArray = Array.isArray(data) ? data : data.results;
-        const formattedData = dataArray.map(candle => ({
-            time: Math.floor(new Date(candle.datetime).getTime() / 1000),
-            open: parseFloat(candle.open_price),
-            high: parseFloat(candle.high_price),
-            low: parseFloat(candle.low_price),
-            close: parseFloat(candle.close_price),
-        }));
-
-        // 2. Текущая свеча из Redis
         const currentCandle = await fetchCurrentCandle(symbol, timeframe);
         if (myId !== loadId) return;
 
-        // 3. Слияние: время в setData должно строго возрастать
         if (currentCandle) {
-            const last = formattedData[formattedData.length - 1];
+            const last = allCandles[allCandles.length - 1];
             if (!last || currentCandle.time > last.time) {
-                formattedData.push(currentCandle);
+                allCandles.push(currentCandle);
             } else if (currentCandle.time === last.time) {
-                formattedData[formattedData.length - 1] = currentCandle;   // Redis свежее БД
+                allCandles[allCandles.length - 1] = currentCandle;
             }
         }
 
-        // Динамическая точность цен
-        if (formattedData.length > 0) {
-            const lastPrice = formattedData[formattedData.length - 1].close;
+        if (allCandles.length > 0) {
+            const lastPrice = allCandles[allCandles.length - 1].close;
             let precision = 2; let minMove = 0.01;
             if (lastPrice < 10) { precision = 5; minMove = 0.00001; }
             else if (lastPrice < 100) { precision = 4; minMove = 0.0001; }
@@ -236,10 +231,9 @@ async function updateChart() {
             });
         }
 
-        candleSeries.setData(formattedData);
-        lastBarTime = formattedData.length > 0 ? formattedData[formattedData.length - 1].time : 0;
+        candleSeries.setData(allCandles);
+        lastBarTime = allCandles.length > 0 ? allCandles[allCandles.length - 1].time : 0;
 
-        // 4. WebSocket подключаем только после setData
         needsHistoryReload = false;
         connectCandleWebSocket();
 
@@ -250,7 +244,7 @@ async function updateChart() {
 
         requestAnimationFrame(() => {
             const visibleBars = 150;
-            const totalBars = formattedData.length;
+            const totalBars = allCandles.length;
 
             if (totalBars > visibleBars) {
                 chart.timeScale().setVisibleLogicalRange({
@@ -267,9 +261,91 @@ async function updateChart() {
         console.error("Ошибка при обновлении графика:", error);
         showToast('Ошибка загрузки графика', 'error');
     } finally {
-        // Лоадер убирает только актуальная загрузка
         if (myId === loadId) loader.classList.remove('visible');
     }
+}
+
+async function loadHistory(limit = 300, toDate = null, myId = null) {
+    if (isLoadingHistory || !hasMoreHistory) return;
+    isLoadingHistory = true;
+
+    try {
+        const symbol = state.symbol;
+        const timeframe = state.timeframe;
+        
+        let fromDate, to;
+        if (toDate) {
+            fromDate = '2000-01-01';
+            to = toDate;
+        } else {
+            const range = getDateRange(timeframe);
+            fromDate = range.fromDate;
+            to = range.toDate;
+        }
+
+        const data = await fetchCandles(symbol, timeframe, fromDate, to, limit);
+        if (myId && myId !== loadId) return;
+
+        const dataArray = Array.isArray(data) ? data : data.results;
+        
+        if (dataArray.length === 0) {
+            hasMoreHistory = false;
+            return;
+        }
+
+        const formatted = dataArray.map(candle => ({
+            time: Math.floor(new Date(candle.datetime).getTime() / 1000),
+            open: parseFloat(candle.open_price),
+            high: parseFloat(candle.high_price),
+            low: parseFloat(candle.low_price),
+            close: parseFloat(candle.close_price),
+        }));
+
+        const existingTimes = new Set(allCandles.map(c => c.time));
+        const newCandles = formatted.filter(c => !existingTimes.has(c.time));
+        
+        if (newCandles.length === 0) {
+            hasMoreHistory = false;
+            return;
+        }
+
+        allCandles = [...newCandles, ...allCandles];
+
+        currentHistoryToDate = new Date(allCandles[0].time * 1000).toISOString().split('T')[0] + ' 23:59:59';
+
+        if (toDate !== null) {
+            const visibleRange = chart.timeScale().getVisibleLogicalRange();
+            
+            candleSeries.setData(allCandles);
+
+            if (visibleRange) {
+                const shift = newCandles.length;
+                chart.timeScale().setVisibleLogicalRange({
+                    from: visibleRange.from + shift,
+                    to: visibleRange.to + shift,
+                });
+            }
+        }
+
+        if (dataArray.length < limit) {
+            hasMoreHistory = false;
+        }
+    } catch (error) {
+        console.error("Ошибка загрузки истории:", error);
+    } finally {
+        isLoadingHistory = false;
+    }
+}
+
+function setupLazyLoading() {
+    chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+        if (!range) return;
+        
+        if (range.from < 10 && !isLoadingHistory && hasMoreHistory && allCandles.length > 0) {
+            if (!currentHistoryToDate) return;
+            loadHistory(300, currentHistoryToDate);
+        }
+    });
 }
 
 async function updateIndicator(type) {
@@ -668,6 +744,7 @@ async function init() {
     await initInstruments();
     setupEventListeners();
     await updateChart();
+    setupLazyLoading();
     await updateFavoriteButton();
     await updateWatchlist();
     setupResizer();
