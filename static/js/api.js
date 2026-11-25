@@ -72,8 +72,8 @@ export async function fetchInstruments() {
 }
 
 //получить свечи по параметрам
-export async function fetchCandles(symbol, timeframe, fromDate, toDate) {
-    const url = `${API_BASE}/candles/?symbol=${symbol}&timeframe=${timeframe}&from=${fromDate}&to=${toDate}`;
+export async function fetchCandles(symbol, timeframe, fromDate, toDate, limit = 300) {
+    const url = `${API_BASE}/candles/?symbol=${symbol}&timeframe=${timeframe}&from=${fromDate}&to=${toDate}&limit=${limit}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Ошибка загрузки свечей');
     return await response.json();

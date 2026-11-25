@@ -197,7 +197,7 @@ async function updateChart() {
         const { fromDate, toDate } = getDateRange(timeframe);
 
         // 1. История
-        const data = await fetchCandles(symbol, timeframe, fromDate, toDate);
+        const data = await fetchCandles(symbol, timeframe, fromDate, toDate, 300);
         if (myId !== loadId) return;
 
         const dataArray = Array.isArray(data) ? data : data.results;

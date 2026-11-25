@@ -65,6 +65,7 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
         timeframe = self.request.query_params.get('timeframe')
         from_str = self.request.query_params.get('from')
         to_str = self.request.query_params.get('to')
+        limit = int(self.request.query_params.get('limit', 0))        
 
         if symbol:
             queryset = queryset.filter(instrument__code=symbol)
@@ -80,7 +81,10 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
             to_dt = self._parse_date_param(to_str)
             if to_dt:
                 queryset = queryset.filter(datetime__lte=to_dt) 
-                
+
+        if limit > 0:
+            queryset = list(queryset.order_by('-datetime')[:limit])[::-1]
+            
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -88,8 +92,9 @@ class CandleView(DateParseMixin, ReadOnlyModelViewSet):
         timeframe = self.request.query_params.get('timeframe')
         from_str = self.request.query_params.get('from')
         to_str = self.request.query_params.get('to')
-
-        cache_key = f'candles:{symbol}:{timeframe}:{from_str}:{to_str}'
+        limit = request.query_params.get('limit', '0')
+        
+        cache_key = f'candles:{symbol}:{timeframe}:{from_str}:{to_str}:{limit}'
 
         cached_data = cache.get(cache_key)
         if cached_data is not None:
