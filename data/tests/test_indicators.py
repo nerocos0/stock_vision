@@ -9,12 +9,10 @@ class IndicatorsLogicTests(TestCase):
 
     def test_sma_calculation(self):
         sma = calculate_sma(self.prices, period=3)
-        
-        # Проверяем, что первые два значения - это NaN
+
         self.assertTrue(math.isnan(sma.iloc[0]))
         self.assertTrue(math.isnan(sma.iloc[1]))
-        
-        # Проверяем третье значение (оно должно быть средним за 3 периода)
+
         self.assertAlmostEqual(float(sma.iloc[2]), 1.1, places=4)
 
     def test_ema_calculation(self):

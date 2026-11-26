@@ -13,7 +13,8 @@ class AuthAPITests(APITestCase):
         data = {
             "username": "testuser_new",
             "password": "strongpassword123",
-            "password2": "strongpassword123"
+            "password2": "strongpassword123",
+            'email': 'new@example.com'
         }
         response = self.client.post(self.register_url, data, format='json')
         
@@ -28,7 +29,8 @@ class AuthAPITests(APITestCase):
         data = {
             "username": "testuser_bad",
             "password": "password123",
-            "password2": "differentpassword"
+            "password2": "differentpassword",
+            'email': 'new@example.com'
         }
         response = self.client.post(self.register_url, data, format='json')
         
