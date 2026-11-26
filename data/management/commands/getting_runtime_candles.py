@@ -25,7 +25,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Запускаю агрегатор...'))
 
         symbols = list(
-            Instrument.objects.filter(is_active=True).values_list('code', flat=True)
+            Instrument.objects.filter(is_active=True).values_list('biquote_symbol', flat=True)
         )
         if not symbols:
             logger.error('Нет активных инструментов в БД')

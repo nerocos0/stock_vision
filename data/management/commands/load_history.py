@@ -20,6 +20,9 @@ DEPTHS = {
 class Command(BaseCommand):
     help = 'Загрузка определенной истории графика одного инструмента'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--symbol', type=str, required=True, help='Символ инструмента (например, GBP/USD)')
+
     def get_valid_candles(self, api_symbol, interval, lower_bound, upper_bound):
         twelve_data = TwelveDataService()
         candles = twelve_data.get_all_candles(api_symbol, interval, lower_bound, upper_bound)
@@ -31,6 +34,7 @@ class Command(BaseCommand):
         return validated_candles
 
     def handle(self, *args, **options):
+        symbol = options['symbol']
         now = datetime.now()
         now_str = datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
         all_candles_model_list = []
@@ -38,9 +42,11 @@ class Command(BaseCommand):
             lower_bound_dt = now - depth
             lower_bound_str = datetime.strftime(lower_bound_dt, '%Y-%m-%d %H:%M:%S')
             all_candles_model_list.extend(self.get_valid_candles(
-                api_symbol='GBP/USD',
+                api_symbol=symbol,
                 interval=interval,
                 lower_bound=lower_bound_str,
                 upper_bound=now_str
             ))
         Candle.objects.bulk_create(all_candles_model_list, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f'✅ {symbol}: загружено {len(all_candles_model_list)} свечей'))

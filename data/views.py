@@ -176,8 +176,7 @@ class InstrumentView(ReadOnlyModelViewSet):
             for instrument in instruments:
                 twelve_data = TwelveDataService()
 
-                #пока преобразование оставим так, потом можно будет реализовать список известных валют
-                api_symbol = f"{instrument.code[:3]}/{instrument.code[3:]}"
+                api_symbol = instrument.twelvedata_symbol or instrument.code
                 data = twelve_data.get_instrument_changes(symbol=api_symbol)
                 data_list.append(data)
 

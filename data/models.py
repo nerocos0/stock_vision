@@ -11,7 +11,9 @@ class Instrument(models.Model):
     name = models.CharField(max_length=100)
     instrument_type = models.CharField(max_length=50, choices=InstrumentType.choices)
     is_active = models.BooleanField(default=True)
-
+    twelvedata_symbol = models.CharField(max_length=20, blank=True, null=True)
+    biquote_symbol = models.CharField(max_length=20, blank=True, null=True)
+    
     def __str__(self):
         return self.code
 

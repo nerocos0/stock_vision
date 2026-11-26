@@ -73,7 +73,7 @@ def save_realtime_candle(symbol, timeframe, candle_data):
 def update_realtime_all_candles():
     """
     Celery задача.
-    Обновляет свечи всех таймфреймов(до 1d) и всех инструментов и записывает их в бд.
+    Обновляет свечи всех таймфреймов(до 1d) всех инструментов и записывает их в бд.
     """
 
     logger.info('Запуск обновления свечей')
@@ -116,7 +116,7 @@ def update_realtime_5m_candles(symbol):
     else:
         start_date = (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
 
-    api_symbol = f"{instrument.code[:3]}/{instrument.code[3:]}"
+    api_symbol = instrument.twelvedata_symbol or instrument.code
 
     twelve_data = TwelveDataService()
     try:
